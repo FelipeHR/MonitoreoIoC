@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package greet;
+
+// The greeting service definition.
+service Communication {
+	// Unary
+	rpc SubmitReport (ReportMessage) returns (ServerMessage);
+  rpc NagiosCommunication (ClientMessage) returns (ServerMessage);
+	// Both Streaming
+	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage);
+  
+}
+
+// The request message containing the user's name.
+message ClientMessage{
+  string ip = 1;
+  string message = 2;
+  string problem = 3;
+}
+
+// The response message containing the greetings.
+message ServerMessage {
+  string message = 1;
+}
+
+message ReportMessage {
+  string ip = 1;
+	string json = 2;
+}

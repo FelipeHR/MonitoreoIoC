@@ -1,0 +1,16 @@
+{
+  "CN": "Client",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CL",
+      "L": "Concepcion",
+      "O": "Client-UdeC",
+      "OU": "UdeC",
+      "ST": "Concepcion"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "CN": "Monitoring CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CL",
+      "L": "Concepcion",
+      "O": "UdeC",
+      "OU": "CertificateAuthority",
+      "ST": "Concepcion"
+    }
+  ]
+}
