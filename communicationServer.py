@@ -1,9 +1,14 @@
 from concurrent import futures
 import time
+import json
+import sys
 
 import grpc
 import communication_pb2
 import communication_pb2_grpc
+
+import sqlite3
+from sqlite3 import Error
 
 
 global tiempoMaximoPeticion
@@ -15,13 +20,104 @@ reporte = False
 global tiempoReporte
 tiempoReporte = None
 
+# --------------------- BASE DE DATOS ---------------------
+def create_connection(db_file):
+   
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+    except Error as e:
+        print(e)
+
+    return conn
+
+
+def create_reporte(conn, datos):
+    
+
+    sql = ''' INSERT INTO Reporte(Error, Fecha, Hora, Datos)
+              VALUES(?,?,?,?) '''
+
+    cur = conn.cursor()
+    cur.execute(sql, datos)
+    conn.commit()
+
+    return cur.lastrowid
+
+
+def create_indicador(conn, datos):
+
+    sql = ''' INSERT INTO Indicador(Id_indicador, Descripcion, Detector, Origen, Fecha, Hora)
+              VALUES(?,?,?,?,?,?) '''
+
+    cur = conn.cursor()
+    cur.execute(sql, datos)
+    conn.commit()
+
+
+def create_host_reporte(conn, datos):
+    # datos = (ip, id_reporte)
+    sql = ''' INSERT INTO Host_Reporte(IP, Id_reporte)
+              VALUES(?,?) '''
+
+    cur = conn.cursor()
+    cur.execute(sql, datos)
+    conn.commit()
+
+
+def create_host_indicador(conn, datos):
+    # datos = (ip, id_reporte)
+    sql = ''' INSERT INTO Host_Indicador(IP, Id_indicador)
+              VALUES(?,?) '''
+
+    cur = conn.cursor()
+    cur.execute(sql, datos)
+    conn.commit()
+
+
+def create_reporte_indicador(conn, datos):
+    # datos = (ip, id_reporte)
+    sql = ''' INSERT INTO Indicador_Reporte(Id_indicador, Id_reporte)
+              VALUES(?,?) '''
+
+    cur = conn.cursor()
+    cur.execute(sql, datos)
+    conn.commit()
+
+
+# ---------------------------------------------------------
+
+
 class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     def SubmitReport(self, request, context):
         print(request.ip)
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = f"Se recibio la informacion correctamente"
+        
+        database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+        conn = create_connection(database)
+
         with open(request.ip+" informe.json","w") as file:
             file.write(request.json)
+            
+            # --- BD --- 
+            
+            # Convierte json a text o varchar
+            da = json.load(file)
+            dat = json.dumps(da)
+
+            # Guarda Reporte
+            datos_reporte = ( (request.ip + "---" + request.problem), str(d.date()), str(d.time()), dat)
+            id_reporte = create_reporte(conn, datos_reporte)
+
+            # Relaciona reporte con host
+            datos_host_reporte = (request.ip, id_reporte)
+            create_host_reporte(conn, datos_host_reporte)
+
+            # --- BD ---
+
+
+        conn.close()    
         return serverReply
     
 
@@ -97,8 +193,8 @@ def comprobarReportes():
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     communication_pb2_grpc.add_CommunicationServicer_to_server(CommunicationServicer(), server)
-    credentials = grpc.ssl_server_credentials( [    (open('certificates/server101-key.pem', 'rb').read(), open('certificates/server101.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
-    server.add_secure_port("192.168.4.101:50051", credentials)
+    credentials = grpc.ssl_server_credentials( [    (open('certificates/server100-key.pem', 'rb').read(), open('certificates/server100.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
+    server.add_secure_port("192.168.4.100:50051", credentials)
     server.start()
     print("Server Started")
     server.wait_for_termination()
