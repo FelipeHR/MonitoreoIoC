@@ -7,7 +7,7 @@ import time
 credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
     open('certificates/host-key.pem','rb').read(),open('certificates/host.pem','rb').read())
 
-ipserver = '192.168.4.84:50051' 
+ipserver = '192.168.4.100:50051' 
 ip = subprocess.getoutput("hostname -I").split(' ')[0]
 mac = subprocess.getoutput("cat /sys/class/net/eno1/address")
 channel = grpc.secure_channel(ipserver,credentials)
@@ -15,7 +15,7 @@ stub = communication_pb2_grpc.CommunicationStub(channel)
 
 def get_client_stream_requests():
     while True:
-        mensaje = "No pasa nada"
+        mensaje = "Tengo un problema"
         request = communication_pb2.ClientMessage(ip = ip, message = mensaje, problem = "No pasa nada")
         yield request
         time.sleep(60)

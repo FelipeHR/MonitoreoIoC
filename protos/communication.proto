@@ -9,7 +9,7 @@ service Communication {
   rpc NagiosCommunication (ClientMessage) returns (ServerMessage);
 	// Both Streaming
 	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage);
-  rpc ApiRequest (stream ClientRequest) returns (stream Data);
+  /*rpc ApiRequest (stream ClientRequest) returns (stream Data);*/
 }
 
 // The request message containing the user's name.
@@ -33,6 +33,6 @@ message ClientRequest{
   int type = 1;
 }
 
-message Data{
+/*message Data{
   string info = 1;
-}
+}*/
