@@ -22,6 +22,7 @@ message ClientMessage{
 // The response message containing the greetings.
 message ServerMessage {
   string message = 1;
+  string problem = 2;
 }
 
 message ReportMessage {

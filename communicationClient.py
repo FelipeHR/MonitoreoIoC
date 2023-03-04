@@ -21,7 +21,7 @@ def get_client_stream_requests():
         time.sleep(60)
 
 
-def reporte(): 
+def reporte(problem): 
     info = {}
     subprocess.run("export LC_ALL=C", shell = True, check = True)
     info["lastConnections"] = {}
@@ -48,7 +48,7 @@ def reporte():
     info["crontabs"] = crontabs
     #fecha = time.strftime("%c")
     data = json.dumps(info)
-    request = communication_pb2.ReportMessage(ip = ip, json = data)
+    request = communication_pb2.ReportMessage(ip = ip, json = data, problem = problem)
     reply = stub.SubmitReport(request)
     print(reply)
     
@@ -58,7 +58,7 @@ def run():
     for response in responses:
         print("Respuesta: " + response.message)
         if response.message == "Dame tu reporte":
-            reporte()
+            reporte(response.problem)
 
 
 def getUsers():

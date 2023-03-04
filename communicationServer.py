@@ -109,7 +109,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
             dat = "ola"
 
 
-            erro = str(request.ip)
+            erro = str(request.ip) + "---" + str()
             # Guarda Reporte
             datos_reporte = ( erro, str(d.date()), str(d.time()), dat)
             id_reporte = create_reporte(conn, datos_reporte)
@@ -121,19 +121,21 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         # --- BD ---
 
 
-        conn.close()    
+        conn.close() 
+        serverReply.problem = ""  
         return serverReply
     
 
     def BidirectionalCommunication(self, request_iterator, context):
         tiempoInicial = None
         for request in request_iterator:
-            mensaje, tiempoInicial = comprobar(request.message, tiempoInicial)
+            mensaje, tiempoInicial = comprobar(request.message, request.problem, tiempoInicial)
             
 
             print("Solicitud de "+request.ip+": "+request.message)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = mensaje
+            serverReply.problem = request.problem
             yield serverReply
 
     def NagiosCommunication(self, request, context):
@@ -146,7 +148,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
                 serverReply.message = "Se pidio reporte hace poco"
             elif estado == "Enviar Reporte":           
                  serverReply.message = "Se pidieron los reportes"
-
+        serverReply.problem = ""
         
         return serverReply
 
