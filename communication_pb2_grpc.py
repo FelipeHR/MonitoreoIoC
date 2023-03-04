@@ -51,6 +51,7 @@ class CommunicationServicer(object):
 
     def BidirectionalCommunication(self, request_iterator, context):
         """Both Streaming
+        rpc ApiRequest (stream ClientRequest) returns (stream Data);
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

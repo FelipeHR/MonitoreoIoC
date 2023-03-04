@@ -27,11 +27,12 @@ message ServerMessage {
 message ReportMessage {
   string ip = 1;
 	string json = 2;
+  string problem = 3;
 }
 
-message ClientRequest{
+/*message ClientRequest{
   int type = 1;
-}
+}*/
 
 /*message Data{
   string info = 1;
