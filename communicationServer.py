@@ -1,5 +1,6 @@
 from concurrent import futures
 import time
+from datetime import datetime
 import json
 import sys
 
@@ -97,24 +98,27 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
         conn = create_connection(database)
 
-        with open(request.ip+" informe.json","w") as file:
-            file.write(request.json)
-            
+        with conn: 
+
+            d = datetime.now()
             # --- BD --- 
             
             # Convierte json a text o varchar
-            da = json.load(file)
-            dat = json.dumps(da)
+            #da = json.load(file)
+            #dat = json.dumps(request.json)
+            dat = "ola"
 
+
+            erro = str(request.ip)
             # Guarda Reporte
-            datos_reporte = ( (request.ip + "---" + request.problem), str(d.date()), str(d.time()), dat)
+            datos_reporte = ( erro, str(d.date()), str(d.time()), dat)
             id_reporte = create_reporte(conn, datos_reporte)
 
             # Relaciona reporte con host
             datos_host_reporte = (request.ip, id_reporte)
             create_host_reporte(conn, datos_host_reporte)
 
-            # --- BD ---
+        # --- BD ---
 
 
         conn.close()    
