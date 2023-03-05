@@ -21,6 +21,11 @@ reporte = False
 global tiempoReporte
 tiempoReporte = None
 
+global cola_id_indicadores
+listaIndicadores = []
+global cola_id_reportes
+lista_id_reportes = []
+
 # --------------------- BASE DE DATOS ---------------------
 def create_connection(db_file):
    
@@ -48,8 +53,8 @@ def create_reporte(conn, datos):
 
 def create_indicador(conn, datos):
 
-    sql = ''' INSERT INTO Indicador(Id_indicador, Descripcion, Detector, Origen, Fecha, Hora)
-              VALUES(?,?,?,?,?,?) '''
+    sql = ''' INSERT INTO Indicador(Descripcion, Detector, Origen, Fecha, Hora)
+              VALUES(?,?,?,?,?) '''
 
     cur = conn.cursor()
     cur.execute(sql, datos)
@@ -114,6 +119,9 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
             datos_reporte = ( erro, str(d.date()), str(d.time()), dat)
             id_reporte = create_reporte(conn, datos_reporte)
 
+            # Guarda id de reporte en cola
+            lista_id_reportes.append(id_reporte)
+
             # Relaciona reporte con host
             datos_host_reporte = (request.ip, id_reporte)
             create_host_reporte(conn, datos_host_reporte)
@@ -122,20 +130,20 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 
         conn.close() 
-        serverReply.problem = ""  
+        #serverReply.problem = "-"  
         return serverReply
     
 
     def BidirectionalCommunication(self, request_iterator, context):
         tiempoInicial = None
         for request in request_iterator:
-            mensaje, tiempoInicial = comprobar(request.message, request.problem, tiempoInicial)
+            mensaje, tiempoInicial = comprobar(request.message, tiempoInicial)
             
 
             print("Solicitud de "+request.ip+": "+request.message)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = mensaje
-            serverReply.problem = request.problem
+            #serverReply.problem = request.problem
             yield serverReply
 
     def NagiosCommunication(self, request, context):
@@ -148,7 +156,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
                 serverReply.message = "Se pidio reporte hace poco"
             elif estado == "Enviar Reporte":           
                  serverReply.message = "Se pidieron los reportes"
-        serverReply.problem = ""
+        #serverReply.problem = ""
         
         return serverReply
 
