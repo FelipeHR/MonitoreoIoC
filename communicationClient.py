@@ -32,7 +32,9 @@ def comprobarIndicador():
             line = file.readline()
             j = 1
             while line!= "":
-                print("Indicador "+str(j)+" :" + line)
+                request = communication_pb2.IndicatorMessage(ip = ip, timestamp = str(time.time()), indicator = line, detector = "LOKI")
+                reply = stub.IndicatorReport(request)
+                print("Se recibio el indicador numero "+str(j))
                 line = file.readline()
                 j += 1
             file.close()

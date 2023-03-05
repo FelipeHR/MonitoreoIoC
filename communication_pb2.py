@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13\x63ommunication.proto\x12\x05greet\",\n\rClientMessage\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\" \n\rServerMessage\x12\x0f\n\x07message\x18\x01 \x01(\t\")\n\rReportMessage\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04json\x18\x02 \x01(\t\"D\n\x10IndicatorMessage\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x11\n\tindicator\x18\x03 \x01(\t2\x9e\x02\n\rCommunication\x12:\n\x0cSubmitReport\x12\x14.greet.ReportMessage\x1a\x14.greet.ServerMessage\x12\x41\n\x13NagiosCommunication\x12\x14.greet.ClientMessage\x1a\x14.greet.ServerMessage\x12L\n\x1a\x42idirectionalCommunication\x12\x14.greet.ClientMessage\x1a\x14.greet.ServerMessage(\x01\x30\x01\x12@\n\x0fIndicatorReport\x12\x17.greet.IndicatorMessage\x1a\x14.greet.ServerMessageb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13\x63ommunication.proto\x12\x05greet\",\n\rClientMessage\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\" \n\rServerMessage\x12\x0f\n\x07message\x18\x01 \x01(\t\")\n\rReportMessage\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04json\x18\x02 \x01(\t\"V\n\x10IndicatorMessage\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x11\n\tindicator\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65tector\x18\x04 \x01(\t2\x9e\x02\n\rCommunication\x12:\n\x0cSubmitReport\x12\x14.greet.ReportMessage\x1a\x14.greet.ServerMessage\x12\x41\n\x13NagiosCommunication\x12\x14.greet.ClientMessage\x1a\x14.greet.ServerMessage\x12L\n\x1a\x42idirectionalCommunication\x12\x14.greet.ClientMessage\x1a\x14.greet.ServerMessage(\x01\x30\x01\x12@\n\x0fIndicatorReport\x12\x17.greet.IndicatorMessage\x1a\x14.greet.ServerMessageb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'communication_pb2', globals())
@@ -27,7 +27,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _REPORTMESSAGE._serialized_start=110
   _REPORTMESSAGE._serialized_end=151
   _INDICATORMESSAGE._serialized_start=153
-  _INDICATORMESSAGE._serialized_end=221
-  _COMMUNICATION._serialized_start=224
-  _COMMUNICATION._serialized_end=510
+  _INDICATORMESSAGE._serialized_end=239
+  _COMMUNICATION._serialized_start=242
+  _COMMUNICATION._serialized_end=528
 # @@protoc_insertion_point(module_scope)

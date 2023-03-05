@@ -33,6 +33,7 @@ message IndicatorMessage {
   string ip = 1;
   string timestamp = 2;
   string indicator = 3;
+  string detector = 4;
 }
 
 /*message ClientRequest{

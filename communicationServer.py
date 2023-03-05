@@ -90,7 +90,7 @@ def create_reporte_indicador(conn, datos):
     cur.execute(sql, datos)
     conn.commit()
 
-
+#Transformar formato de hora a string: datetime.fromtimestamp(time_stamp) https://flexiple.com/python/python-timestamp/
 # ---------------------------------------------------------
 
 
@@ -138,8 +138,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         tiempoInicial = None
         for request in request_iterator:
             mensaje, tiempoInicial = comprobar(request.message, tiempoInicial)
-            
-
             print("Solicitud de "+request.ip+": "+request.message)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = mensaje
@@ -159,6 +157,12 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         #serverReply.problem = ""
         
         return serverReply
+
+    def IndicatorReport(self, request, context):
+        ipIndicator = request.ip
+        tsIndicator = request.timestamp
+        dataIndicator = request.indicator
+
 
 def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios
