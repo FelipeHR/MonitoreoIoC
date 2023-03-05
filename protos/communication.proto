@@ -9,6 +9,7 @@ service Communication {
   rpc NagiosCommunication (ClientMessage) returns (ServerMessage);
 	// Both Streaming
 	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage);
+  rpc IndicatorReport (IndicatorMessage) returns (ServerMessage);
   /*rpc ApiRequest (stream ClientRequest) returns (stream Data);*/
 }
 
@@ -16,19 +17,22 @@ service Communication {
 message ClientMessage{
   string ip = 1;
   string message = 2;
-  string problem = 3;
 }
 
 // The response message containing the greetings.
 message ServerMessage {
   string message = 1;
-  string problem = 2;
 }
 
 message ReportMessage {
   string ip = 1;
 	string json = 2;
-  string problem = 3;
+}
+
+message IndicatorMessage {
+  string ip = 1;
+  string timestamp = 2;
+  string indicator = 3;
 }
 
 /*message ClientRequest{

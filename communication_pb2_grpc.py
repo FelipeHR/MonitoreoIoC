@@ -30,6 +30,11 @@ class CommunicationStub(object):
                 request_serializer=communication__pb2.ClientMessage.SerializeToString,
                 response_deserializer=communication__pb2.ServerMessage.FromString,
                 )
+        self.IndicatorReport = channel.unary_unary(
+                '/greet.Communication/IndicatorReport',
+                request_serializer=communication__pb2.IndicatorMessage.SerializeToString,
+                response_deserializer=communication__pb2.ServerMessage.FromString,
+                )
 
 
 class CommunicationServicer(object):
@@ -51,7 +56,13 @@ class CommunicationServicer(object):
 
     def BidirectionalCommunication(self, request_iterator, context):
         """Both Streaming
-        rpc ApiRequest (stream ClientRequest) returns (stream Data);
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def IndicatorReport(self, request, context):
+        """rpc ApiRequest (stream ClientRequest) returns (stream Data);
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,6 +84,11 @@ def add_CommunicationServicer_to_server(servicer, server):
             'BidirectionalCommunication': grpc.stream_stream_rpc_method_handler(
                     servicer.BidirectionalCommunication,
                     request_deserializer=communication__pb2.ClientMessage.FromString,
+                    response_serializer=communication__pb2.ServerMessage.SerializeToString,
+            ),
+            'IndicatorReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.IndicatorReport,
+                    request_deserializer=communication__pb2.IndicatorMessage.FromString,
                     response_serializer=communication__pb2.ServerMessage.SerializeToString,
             ),
     }
@@ -133,6 +149,23 @@ class Communication(object):
             metadata=None):
         return grpc.experimental.stream_stream(request_iterator, target, '/greet.Communication/BidirectionalCommunication',
             communication__pb2.ClientMessage.SerializeToString,
+            communication__pb2.ServerMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def IndicatorReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/greet.Communication/IndicatorReport',
+            communication__pb2.IndicatorMessage.SerializeToString,
             communication__pb2.ServerMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
