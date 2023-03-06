@@ -22,9 +22,9 @@ global tiempoReporte
 tiempoReporte = None
 
 global cola_id_indicadores
-listaIndicadores = []
+cola_id_indicadores = []
 global cola_id_reportes
-lista_id_reportes = []
+cola_id_reportes = []
 
 # --------------------- BASE DE DATOS ---------------------
 def create_connection(db_file):
@@ -59,6 +59,8 @@ def create_indicador(conn, datos):
     cur = conn.cursor()
     cur.execute(sql, datos)
     conn.commit()
+
+    return cur.lastrowid
 
 
 def create_host_reporte(conn, datos):
@@ -95,7 +97,12 @@ def create_reporte_indicador(conn, datos):
 
 
 class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
+    
+
     def SubmitReport(self, request, context):
+
+        global cola_id_reportes
+
         print(request.ip)
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = f"Se recibio la informacion correctamente"
@@ -110,8 +117,8 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
             
             # Convierte json a text o varchar
             #da = json.load(file)
-            #dat = json.dumps(request.json)
-            dat = "ola"
+            dat = json.dumps(request.json)
+            #dat = "ola"
 
 
             erro = str(request.ip) + "---" + str()
@@ -120,7 +127,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
             id_reporte = create_reporte(conn, datos_reporte)
 
             # Guarda id de reporte en cola
-            lista_id_reportes.append(id_reporte)
+            cola_id_reportes.append(id_reporte)
 
             # Relaciona reporte con host
             datos_host_reporte = (request.ip, id_reporte)
@@ -144,32 +151,68 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
             #serverReply.problem = request.problem
             yield serverReply
 
-    def NagiosCommunication(self, request, context):
-        mensaje = request.message
-        estado = comprobarReportes()
-        print(mensaje)
-        serverReply = communication_pb2.ServerMessage()
-        if mensaje == "Necesito Reporte":
-            if estado == "Esperar":
-                serverReply.message = "Se pidio reporte hace poco"
-            elif estado == "Enviar Reporte":           
-                 serverReply.message = "Se pidieron los reportes"
-        #serverReply.problem = ""
-        
-        return serverReply
+
+
 
     def IndicatorReport(self, request, context):
+
+        global cola_id_indicadores
+        print(request)
+
+        
         ipIndicator = request.ip
         tsIndicator = request.timestamp
         dataIndicator = request.indicator
+        detectorIndicator = request.detector
+
+
+        serverReply = communication_pb2.ServerMessage()
+        serverReply.message = f"Se recibio la informacion correctamente"
+        
+        stamp = datetime.fromtimestamp(tsIndicator)
+
+        FyH = stamp.split()
+
+        fechaIndicator = FyH[0]
+        horaIndicator = FyH[1]
+
+        # --- BD --- 
+        database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+        conn = create_connection(database)
+
+        with conn: 
+
+            d = datetime.now()
+        
+            
+            # Guarda Indicador
+            datos_indicador = (dataIndicator, detectorIndicator, ipIndicator, fechaIndicator, horaIndicator)
+            id_indicador = create_indicador(conn, datos_indicador)
+
+            # Guarda id de indicador en cola
+            cola_id_indicador.append(id_indicador)
+
+        # --- BD ---
+
+
+        conn.close() 
+
+        return serverReply
+
+
+
 
 
 def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios
     global tiempoReporte
+    #tiempoReporte es el tiempo desde que se empezo a solicitar reportes (si no hay reportes es None)
     global reporte
+    #reporte es True si se tiene que solicitar reporte
     global tiempoMaximoNagios
+    #tiempoMaximoNagios es el tiempo maximo para no volver a perdir reportes desde nagios
     global tiempoMaximoPeticion
+    #tiempoMaximoPeticion es el tiempo maximo para solicitarle reportes a las demas maquinas
 
     if tiempoReporte != None and tiempoReporte + tiempoMaximoNagios <= time.time()/60:
         reporte = False
