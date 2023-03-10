@@ -6,10 +6,10 @@ package greet;
 service Communication {
 	// Unary
 	rpc SubmitReport (ReportMessage) returns (ServerMessage);
-  rpc NagiosCommunication (ClientMessage) returns (ServerMessage);
 	// Both Streaming
 	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage);
   rpc IndicatorReport (IndicatorMessage) returns (ServerMessage);
+  rpc SaveIndicatorReport (ReportXIndicator) returns (ServerMessage);
   /*rpc ApiRequest (stream ClientRequest) returns (stream Data);*/
 }
 
@@ -34,6 +34,11 @@ message IndicatorMessage {
   string timestamp = 2;
   string indicator = 3;
   string detector = 4;
+}
+
+message ReportXIndicator{
+  string idReport = 1;
+  string idIndicator = 2;
 }
 
 /*message ClientRequest{

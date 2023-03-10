@@ -113,32 +113,19 @@ def guardarReporte(origen, fecha, hora, datos):
         datos_reporte = (fecha, hora, dat)
         id_reporte = create_reporte(conn, datos_reporte)
 
-        # Guarda id de reporte en cola
-        #cola_id_reportes.append(id_reporte)
-
         # Relaciona reporte con host
         datos_host_reporte = (origen, id_reporte)
         create_host_reporte(conn, datos_host_reporte)
 
-    # --- BD ---
     conn.close()
-
+    return id_reporte
 
 def guardarIndicador(descripcion, detector, origen, fecha, hora):
 
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
     conn = create_connection(database)
 
-
-# $1 = Descripcion
-# $2 = Detector
-# $3 = Origen
-# $4 = Fecha
-# $5 = Hora
-
-
     with conn: 
-
     
         # Guarda Indicador
         datos_indicador = (descripcion, detector, origen, fecha, hora)
@@ -148,16 +135,17 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
         datos_host_indicador = (origen, id_indicador)
         create_host_indicador(conn, datos_host_indicador)
 
-
-        # Guarda id de indicador en cola
-        #cola_id_indicador.append(id_indicador)
-
-    # --- BD ---
-    
-
     conn.close()
+    return id_indicador
 
+def asociarID(id_indicador, id_reporte):
 
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+    conn = create_connection(database)
+
+    datos_reporte_indicador = (id_indicador, id_reporte)
+
+    create_reporte_indicador(conn, datos_reporte_indicador)
 
 
 
@@ -171,23 +159,18 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     def SubmitReport(self, request, context):
 
         print(request.ip)
-        serverReply = communication_pb2.ServerMessage()
-        serverReply.message = f"Se recibio la informacion correctamente"
         
         d = datetime.now()
 
         Fecha  = str(d.date())
         Hora   = str(d.time())
 
-        guardarReporte(request.ip, Fecha, Hora, request.json)
+        id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
 
-        
-        print("\n\n")
-        print(serverReply)
-        print("\n\n")
+        serverReply = communication_pb2.ServerMessage()
+        serverReply.message = id_reporte
         return serverReply
     
-
 
     def BidirectionalCommunication(self, request_iterator, context):
         tiempoInicial = None
@@ -204,9 +187,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     def IndicatorReport(self, request, context):
 
         print(request)
-        serverReply = communication_pb2.ServerMessage()
-        serverReply.message = f"Se recibio la informacion correctamente"
-        
         
         tsIndicator = request.timestamp
         stamp = str(datetime.fromtimestamp(float(tsIndicator)))
@@ -215,17 +195,19 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         fechaIndicator = FyH[0]
         horaIndicator = FyH[1]
 
-        guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
+        id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
 
-        print(fechaIndicator)
-        print("\n")
-        print(horaIndicator)
+        serverReply = communication_pb2.ServerMessage()
+        serverReply.message = str(id_indicador)
 
-        print("\n\n")
-        print(serverReply)
-        print("\n\n")
         return serverReply
 
+    def SaveIndicatorReport(self, request, context):
+
+        idReporte = request.idReporte
+        idIndicador = request.idIndicator
+        
+        asociarID(idReporte, idIndicador)
 
 def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios

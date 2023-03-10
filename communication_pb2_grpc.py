@@ -20,11 +20,6 @@ class CommunicationStub(object):
                 request_serializer=communication__pb2.ReportMessage.SerializeToString,
                 response_deserializer=communication__pb2.ServerMessage.FromString,
                 )
-        self.NagiosCommunication = channel.unary_unary(
-                '/greet.Communication/NagiosCommunication',
-                request_serializer=communication__pb2.ClientMessage.SerializeToString,
-                response_deserializer=communication__pb2.ServerMessage.FromString,
-                )
         self.BidirectionalCommunication = channel.stream_stream(
                 '/greet.Communication/BidirectionalCommunication',
                 request_serializer=communication__pb2.ClientMessage.SerializeToString,
@@ -33,6 +28,11 @@ class CommunicationStub(object):
         self.IndicatorReport = channel.unary_unary(
                 '/greet.Communication/IndicatorReport',
                 request_serializer=communication__pb2.IndicatorMessage.SerializeToString,
+                response_deserializer=communication__pb2.ServerMessage.FromString,
+                )
+        self.SaveIndicatorReport = channel.unary_unary(
+                '/greet.Communication/SaveIndicatorReport',
+                request_serializer=communication__pb2.ReportXIndicator.SerializeToString,
                 response_deserializer=communication__pb2.ServerMessage.FromString,
                 )
 
@@ -48,12 +48,6 @@ class CommunicationServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def NagiosCommunication(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def BidirectionalCommunication(self, request_iterator, context):
         """Both Streaming
         """
@@ -62,6 +56,12 @@ class CommunicationServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def IndicatorReport(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SaveIndicatorReport(self, request, context):
         """rpc ApiRequest (stream ClientRequest) returns (stream Data);
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -76,11 +76,6 @@ def add_CommunicationServicer_to_server(servicer, server):
                     request_deserializer=communication__pb2.ReportMessage.FromString,
                     response_serializer=communication__pb2.ServerMessage.SerializeToString,
             ),
-            'NagiosCommunication': grpc.unary_unary_rpc_method_handler(
-                    servicer.NagiosCommunication,
-                    request_deserializer=communication__pb2.ClientMessage.FromString,
-                    response_serializer=communication__pb2.ServerMessage.SerializeToString,
-            ),
             'BidirectionalCommunication': grpc.stream_stream_rpc_method_handler(
                     servicer.BidirectionalCommunication,
                     request_deserializer=communication__pb2.ClientMessage.FromString,
@@ -89,6 +84,11 @@ def add_CommunicationServicer_to_server(servicer, server):
             'IndicatorReport': grpc.unary_unary_rpc_method_handler(
                     servicer.IndicatorReport,
                     request_deserializer=communication__pb2.IndicatorMessage.FromString,
+                    response_serializer=communication__pb2.ServerMessage.SerializeToString,
+            ),
+            'SaveIndicatorReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.SaveIndicatorReport,
+                    request_deserializer=communication__pb2.ReportXIndicator.FromString,
                     response_serializer=communication__pb2.ServerMessage.SerializeToString,
             ),
     }
@@ -115,23 +115,6 @@ class Communication(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/greet.Communication/SubmitReport',
             communication__pb2.ReportMessage.SerializeToString,
-            communication__pb2.ServerMessage.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def NagiosCommunication(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/greet.Communication/NagiosCommunication',
-            communication__pb2.ClientMessage.SerializeToString,
             communication__pb2.ServerMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -166,6 +149,23 @@ class Communication(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/greet.Communication/IndicatorReport',
             communication__pb2.IndicatorMessage.SerializeToString,
+            communication__pb2.ServerMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SaveIndicatorReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/greet.Communication/SaveIndicatorReport',
+            communication__pb2.ReportXIndicator.SerializeToString,
             communication__pb2.ServerMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

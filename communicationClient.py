@@ -8,35 +8,65 @@ from os import remove
 credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
     open('certificates/host-key.pem','rb').read(),open('certificates/host.pem','rb').read())
 
-ipserver = '192.168.4.100:50051' 
+global ipserver
+ipserver = '192.168.4.100:50051'
+global ip
 ip = subprocess.getoutput("hostname -I").split(' ')[0]
+global mac
 mac = subprocess.getoutput("cat /sys/class/net/eno1/address")
+global channel
 channel = grpc.secure_channel(ipserver,credentials)
+global stub
 stub = communication_pb2_grpc.CommunicationStub(channel)
-tiempoLog = -1 
-tiempoReporte = 20
+global tiempoLog
+tiempoLog = -1
+global tiempoReporte
+tiempoReporte = 1
+global tiempoLoki
 tiempoLoki = 120
+global contadorTiempoLoki
+contadorTiempoLoki = 0
+global indicadores
+indicadores = []
+
 def get_client_stream_requests():
+    global contadorTiempoLoki
+    global tiempoLoki
+    global tiempoLog
+    global ip
+
     while True:
+        if contadorTiempoLoki % tiempoLoki == 0:
+            #ejecutarLoki()
+            tiempoLog = 0
+        
         mensaje = comprobarIndicador()
         request = communication_pb2.ClientMessage(ip = ip, message = mensaje)
+        contadorTiempoLoki += 1
         yield request
         time.sleep(60)
 
 def comprobarIndicador():
+    global tiempoLog
+    global tiempoReporte
+    global ip
+    global stub
+    global indicadores
     if tiempoLog == -1 or (tiempoLog >= 0 and tiempoLog < tiempoReporte):
+        if tiempoLog != -1:
+            tiempoLog += 1
         return "No pasa nada"
-    elif tiempoLog > 20:
+    
+    elif tiempoLog >= tiempoReporte:
         try:
             file = open("log.txt")
             line = file.readline()
-            j = 1
             while line!= "":
                 request = communication_pb2.IndicatorMessage(ip = ip, timestamp = str(time.time()), indicator = line, detector = "LOKI")
                 reply = stub.IndicatorReport(request)
-                print("Se recibio el indicador numero "+str(j))
+                indicadores.append(reply)
+                print("Se recibio el indicador numero "+ reply)
                 line = file.readline()
-                j += 1
             file.close()
             remove("log.txt")
             return ("Tengo un problema")
@@ -45,7 +75,10 @@ def comprobarIndicador():
         tiempoLog = -1
 
 
-def reporte(problem): 
+def reporte():
+    global ip
+    global stub
+    global mac
     info = {}
     subprocess.run("export LC_ALL=C", shell = True, check = True)
     info["lastConnections"] = {}
@@ -74,22 +107,27 @@ def reporte(problem):
     request = communication_pb2.ReportMessage(ip = ip, json = data)
     reply = stub.SubmitReport(request)
     print(reply)
+    while not bool(indicadores):
+        save = communication_pb2.ReportXIndicator(idReport = reply, idIndicator = indicadores.pop())
+        replySave = stub.SaveIndicatorReport(save)
     
 
-def run():       
+def run():
+    global stub
     responses = stub.BidirectionalCommunication(get_client_stream_requests())
     for response in responses:
         print("Respuesta: " + response.message)
         if response.message == "Dame tu reporte":
-            reporte(response.problem)
+            reporte()
 
 
 def getUsers():
 	command = subprocess.getoutput("cut -d: -f1 /etc/passwd").split("\n")
 	return command
 
-    
-
+def ejecutarLoki():
+    print("Se ejecutara un analisis")
+    subprocess.run("nohup python3 Loki-0.45.0/loki.py --onlyrelevant -l log.txt &", shell = True, check = True)    
 
 run()
 
