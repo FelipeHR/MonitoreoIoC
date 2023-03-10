@@ -8,8 +8,12 @@ import grpc
 import communication_pb2
 import communication_pb2_grpc
 
+
+
 import sqlite3
 from sqlite3 import Error
+import subprocess
+
 
 
 global tiempoMaximoPeticion
@@ -21,10 +25,10 @@ reporte = False
 global tiempoReporte
 tiempoReporte = None
 
-global cola_id_indicadores
-cola_id_indicadores = []
-global cola_id_reportes
-cola_id_reportes = []
+#global cola_id_indicadores
+#cola_id_indicadores = []
+#global cola_id_reportes
+#cola_id_reportes = []
 
 # --------------------- BASE DE DATOS ---------------------
 def create_connection(db_file):
@@ -41,8 +45,8 @@ def create_connection(db_file):
 def create_reporte(conn, datos):
     
 
-    sql = ''' INSERT INTO Reporte(Error, Fecha, Hora, Datos)
-              VALUES(?,?,?,?) '''
+    sql = ''' INSERT INTO Reporte(Fecha, Hora, Datos)
+              VALUES(?,?,?) '''
 
     cur = conn.cursor()
     cur.execute(sql, datos)
@@ -92,6 +96,71 @@ def create_reporte_indicador(conn, datos):
     cur.execute(sql, datos)
     conn.commit()
 
+
+def guardarReporte(origen, fecha, hora, datos):
+    
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+    conn = create_connection(database)
+
+    with conn: 
+
+        d = datetime.now()
+        
+        #da = json.load(Dir)
+        dat = json.dumps(datos)
+
+        # Guarda Reporte
+        datos_reporte = (fecha, hora, dat)
+        id_reporte = create_reporte(conn, datos_reporte)
+
+        # Guarda id de reporte en cola
+        #cola_id_reportes.append(id_reporte)
+
+        # Relaciona reporte con host
+        datos_host_reporte = (origen, id_reporte)
+        create_host_reporte(conn, datos_host_reporte)
+
+    # --- BD ---
+    conn.close()
+
+
+def guardarIndicador(descripcion, detector, origen, fecha, hora):
+
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+    conn = create_connection(database)
+
+
+# $1 = Descripcion
+# $2 = Detector
+# $3 = Origen
+# $4 = Fecha
+# $5 = Hora
+
+
+    with conn: 
+
+    
+        # Guarda Indicador
+        datos_indicador = (descripcion, detector, origen, fecha, hora)
+        id_indicador = create_indicador(conn, datos_indicador)
+
+        # Asocia Indicador con Host
+        datos_host_indicador = (origen, id_indicador)
+        create_host_indicador(conn, datos_host_indicador)
+
+
+        # Guarda id de indicador en cola
+        #cola_id_indicador.append(id_indicador)
+
+    # --- BD ---
+    
+
+    conn.close()
+
+
+
+
+
 #Transformar formato de hora a string: datetime.fromtimestamp(time_stamp) https://flexiple.com/python/python-timestamp/
 # ---------------------------------------------------------
 
@@ -101,45 +170,24 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def SubmitReport(self, request, context):
 
-        global cola_id_reportes
-
         print(request.ip)
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = f"Se recibio la informacion correctamente"
         
-        database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
-        conn = create_connection(database)
+        d = datetime.now()
 
-        with conn: 
+        Fecha  = str(d.date())
+        Hora   = str(d.time())
 
-            d = datetime.now()
-            # --- BD --- 
-            
-            # Convierte json a text o varchar
-            #da = json.load(file)
-            dat = json.dumps(request.json)
-            #dat = "ola"
+        guardarReporte(request.ip, Fecha, Hora, request.json)
 
-
-            erro = str(request.ip) + "---" + str()
-            # Guarda Reporte
-            datos_reporte = ( erro, str(d.date()), str(d.time()), dat)
-            id_reporte = create_reporte(conn, datos_reporte)
-
-            # Guarda id de reporte en cola
-            cola_id_reportes.append(id_reporte)
-
-            # Relaciona reporte con host
-            datos_host_reporte = (request.ip, id_reporte)
-            create_host_reporte(conn, datos_host_reporte)
-
-        # --- BD ---
-
-
-        conn.close() 
-        #serverReply.problem = "-"  
+        
+        print("\n\n")
+        print(serverReply)
+        print("\n\n")
         return serverReply
     
+
 
     def BidirectionalCommunication(self, request_iterator, context):
         tiempoInicial = None
@@ -153,54 +201,30 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 
 
-
     def IndicatorReport(self, request, context):
 
-        global cola_id_indicadores
         print(request)
-
-        
-        ipIndicator = request.ip
-        tsIndicator = request.timestamp
-        dataIndicator = request.indicator
-        detectorIndicator = request.detector
-
-
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = f"Se recibio la informacion correctamente"
         
-        stamp = datetime.fromtimestamp(tsIndicator)
-
+        
+        tsIndicator = request.timestamp
+        stamp = str(datetime.fromtimestamp(float(tsIndicator)))
         FyH = stamp.split()
 
         fechaIndicator = FyH[0]
         horaIndicator = FyH[1]
 
-        # --- BD --- 
-        database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
-        conn = create_connection(database)
+        guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
 
-        with conn: 
+        print(fechaIndicator)
+        print("\n")
+        print(horaIndicator)
 
-            d = datetime.now()
-        
-            
-            # Guarda Indicador
-            datos_indicador = (dataIndicator, detectorIndicator, ipIndicator, fechaIndicator, horaIndicator)
-            id_indicador = create_indicador(conn, datos_indicador)
-
-            # Guarda id de indicador en cola
-            cola_id_indicador.append(id_indicador)
-
-        # --- BD ---
-
-
-        conn.close() 
-
+        print("\n\n")
+        print(serverReply)
+        print("\n\n")
         return serverReply
-
-
-
 
 
 def  comprobar(mensaje, tiempo):
