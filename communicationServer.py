@@ -48,6 +48,7 @@ def create_reporte(conn, datos):
     sql = ''' INSERT INTO Reporte(Fecha, Hora, Datos)
               VALUES(?,?,?) '''
 
+    
     cur = conn.cursor()
     cur.execute(sql, datos)
     conn.commit()
@@ -56,7 +57,7 @@ def create_reporte(conn, datos):
 
 
 def create_indicador(conn, datos):
-
+    
     sql = ''' INSERT INTO Indicador(Descripcion, Detector, Origen, Fecha, Hora)
               VALUES(?,?,?,?,?) '''
 
@@ -69,6 +70,7 @@ def create_indicador(conn, datos):
 
 def create_host_reporte(conn, datos):
     # datos = (ip, id_reporte)
+
     sql = ''' INSERT INTO Host_Reporte(IP, Id_reporte)
               VALUES(?,?) '''
 
@@ -82,6 +84,7 @@ def create_host_indicador(conn, datos):
     sql = ''' INSERT INTO Host_Indicador(IP, Id_indicador)
               VALUES(?,?) '''
 
+
     cur = conn.cursor()
     cur.execute(sql, datos)
     conn.commit()
@@ -89,7 +92,7 @@ def create_host_indicador(conn, datos):
 
 def create_reporte_indicador(conn, datos):
     # datos = (ip, id_reporte)
-    sql = ''' INSERT INTO Indicador_Reporte(Id_indicador, Id_reporte)
+    sql = ''' INSERT INTO Reporte_Indicador(Id_indicador, Id_reporte)
               VALUES(?,?) '''
 
     cur = conn.cursor()
@@ -101,6 +104,7 @@ def guardarReporte(origen, fecha, hora, datos):
     
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
     conn = create_connection(database)
+
 
     with conn: 
 
@@ -124,6 +128,7 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
 
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
     conn = create_connection(database)
+
 
     with conn: 
     
@@ -158,17 +163,18 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def SubmitReport(self, request, context):
 
-        print(request.ip)
-        
         d = datetime.now()
 
         Fecha  = str(d.date())
         Hora   = str(d.time())
-
+             
         id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
 
+
         serverReply = communication_pb2.ServerMessage()
-        serverReply.message = id_reporte
+        serverReply.message = str(id_reporte)
+
+
         return serverReply
     
 
@@ -186,8 +192,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def IndicatorReport(self, request, context):
 
-        print(request)
-        
         tsIndicator = request.timestamp
         stamp = str(datetime.fromtimestamp(float(tsIndicator)))
         FyH = stamp.split()
@@ -195,19 +199,27 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         fechaIndicator = FyH[0]
         horaIndicator = FyH[1]
 
+
         id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
+
 
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = str(id_indicador)
+
 
         return serverReply
 
     def SaveIndicatorReport(self, request, context):
 
-        idReporte = request.idReporte
+        idReporte = request.idReport
         idIndicador = request.idIndicator
-        
-        asociarID(idReporte, idIndicador)
+
+        asociarID(idIndicador, idReporte)
+
+        serverReply = communication_pb2.ServerMessage()
+        serverReply.message = "Se asociaron " + idReporte + " - " + idIndicador
+
+        return serverReply
 
 def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios
