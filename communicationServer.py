@@ -8,27 +8,35 @@ import grpc
 import communication_pb2
 import communication_pb2_grpc
 
-
-
 import sqlite3
 from sqlite3 import Error
 import subprocess
 
-
-
-global tiempoMaximoPeticion
-tiempoMaximoPeticion = 2
-global tiempoMaximoNagios
-tiempoMaximoNagios = 1
+global tiempoMaximoReporte
+tiempoMaximoReporte = 2
+global tiempoMaximoIndicador
+tiempoMaximoIndicador = 1
 global reporte
 reporte = False
-global tiempoReporte
-tiempoReporte = None
+global tiempoIndicador
+tiempoIndicador = None
 
-#global cola_id_indicadores
-#cola_id_indicadores = []
-#global cola_id_reportes
-#cola_id_reportes = []
+global cola_id_indicadores
+cola_id_indicadores = []
+
+global cola_id_reportes
+cola_id_reportes = []
+
+'''
+
+1.- cambiar mensaje de respuesta del servidor cuando el indicador es enviado por nagios(detector) 
+
+2.- mientras no termine el tiempo para mandar a pedir reportes, acumular los indicadores encontrados
+    por nagios para despues asociar los reportes e indicadores
+
+3.- 
+
+'''
 
 # --------------------- BASE DE DATOS ---------------------
 def create_connection(db_file):
@@ -105,7 +113,6 @@ def guardarReporte(origen, fecha, hora, datos):
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
     conn = create_connection(database)
 
-
     with conn: 
 
         d = datetime.now()
@@ -122,13 +129,14 @@ def guardarReporte(origen, fecha, hora, datos):
         create_host_reporte(conn, datos_host_reporte)
 
     conn.close()
+
     return id_reporte
+
 
 def guardarIndicador(descripcion, detector, origen, fecha, hora):
 
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
     conn = create_connection(database)
-
 
     with conn: 
     
@@ -141,27 +149,67 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
         create_host_indicador(conn, datos_host_indicador)
 
     conn.close()
+
     return id_indicador
 
-def asociarID(id_indicador, id_reporte):
+
+# ---------------------------------------------------------
+
+def asociarIDLoki(id_indicador, id_reporte):
 
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
     conn = create_connection(database)
 
     datos_reporte_indicador = (id_indicador, id_reporte)
-
     create_reporte_indicador(conn, datos_reporte_indicador)
 
 
+def asociarIDNagios():
 
-#Transformar formato de hora a string: datetime.fromtimestamp(time_stamp) https://flexiple.com/python/python-timestamp/
-# ---------------------------------------------------------
+    global cola_id_reportes
+    global cola_id_indicadores
+
+
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+    conn = create_connection(database)
+
+    for reporte in cola_id_reportes:
+
+        for indicador in cola_id_indicadores:
+
+            datos_reporte_indicador = (indicador, reporte)
+            create_reporte_indicador(conn, datos_reporte_indicador)
+
+    conn.close()
+
+    cola_id_reportes = []
+    cola_id_indicadores = []
+
+# ------------------ TIEMPO ------------------
+
+
+def comprobarTiempo(tiempo, tiempoMax, esIndicador):
+
+
+    if tiempo != None and tiempo + tiempoMax > time.time()/60:
+        
+        if esIndicador:
+
+            asociarIDNagios()
+
+        return None 
+        
+    return tiempo    
+
+# --------------------------------------------
 
 
 class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     
 
     def SubmitReport(self, request, context):
+
+        global cola_id_reportes
 
         d = datetime.now()
 
@@ -170,13 +218,19 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
              
         id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
 
+        #si es string
+        dic = json.loads(request.json)
+        
+        if request.json['Detector'] == "NAGIOS":
+
+            cola_id_reportes.append(id_reporte)
 
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = str(id_reporte)
 
-
         return serverReply
     
+
 
     def BidirectionalCommunication(self, request_iterator, context):
         tiempoInicial = None
@@ -192,81 +246,78 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def IndicatorReport(self, request, context):
 
+        global tiempoIndicador
+        global tiempoMaximoIndicador
+        global cola_id_indicadores
+
+        tiempoIndicador = comprobarTiempo(tiempoIndicador, tiempoMaximoIndicador, True)
+
+
         tsIndicator = request.timestamp
         stamp = str(datetime.fromtimestamp(float(tsIndicator)))
         FyH = stamp.split()
-
         fechaIndicator = FyH[0]
         horaIndicator = FyH[1]
 
-
         id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
 
+        if request.detector == "NAGIOS" and tiempoIndicador == None:
+            
+            tiempoIndicador = time.time()/60
+            cola_id_indicadores.append(id_indicador)
 
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = str(id_indicador)
 
-
         return serverReply
+
+
 
     def SaveIndicatorReport(self, request, context):
 
         idReporte = request.idReport
         idIndicador = request.idIndicator
 
-        asociarID(idIndicador, idReporte)
+        asociarIDLoki(idIndicador, idReporte)
 
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = "Se asociaron " + idReporte + " - " + idIndicador
 
         return serverReply
 
+
+
 def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios
-    global tiempoReporte
-    #tiempoReporte es el tiempo desde que se empezo a solicitar reportes (si no hay reportes es None)
+    global tiempoIndicador
+    #tiempoIndicador es el tiempo desde que se empezo a solicitar reportes (si no hay reportes es None)
     global reporte
     #reporte es True si se tiene que solicitar reporte
-    global tiempoMaximoNagios
-    #tiempoMaximoNagios es el tiempo maximo para no volver a perdir reportes desde nagios
-    global tiempoMaximoPeticion
-    #tiempoMaximoPeticion es el tiempo maximo para solicitarle reportes a las demas maquinas
+    global tiempoMaximoIndicador
+    #tiempoMaximoIndicador es el tiempo maximo para no volver a perdir reportes desde nagios
+    global tiempoMaximoReporte
+    #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
 
-    if tiempoReporte != None and tiempoReporte + tiempoMaximoNagios <= time.time()/60:
-        reporte = False
-        tiempoReporte = None
-    
-    
+    tiempoIndicador = comprobarTiempo(tiempoIndicador, tiempoMaximoIndicador,True)
+
+    tiempo = comprobarTiempo(tiempo, tiempoMaximoReporte, False)
+
+
     if mensaje == "Tengo un problema":
-        if tiempo != None and tiempo + tiempoMaximoPeticion > time.time()/60:
-            return "Ya te solicite reporte", tiempo
-        else:
-            return "Dame tu reporte", time.time()/60
+        return "Dame tu reporte", time.time()/60
     
+
     else:
-        if (tiempo != None and reporte and tiempo + tiempoMaximoPeticion <= time.time()/60) or (reporte and tiempo == None):
-            return "Dame tu reporte", time.time()/60
+
+        if tiempo == None and tiempoIndicador != None:
+            return "NAGIOS solicita tu reporte", time.time()/60
+
         elif mensaje == "No pasa nada":
-            return "Ok", tiempo
+             return "Ok", tiempo
+
         else:
             return "No te entiendo",tiempo 
 
-def comprobarReportes():
-    global tiempoReporte
-    global reporte
-    global tiempoMaximoNagios
-
-    if reporte:
-        if tiempoReporte != None:
-            if tiempoReporte + tiempoMaximoNagios > time.time()/60:
-                return "Esperar"
-            else:
-                tiempoReporte = time.time/(60)
-                return "Enviar Reporte"
-    else:
-        tiempoReporte = time.time()/60
-        reporte = True
-        return "Enviar Reporte"
 
 
 def serve():
@@ -277,6 +328,8 @@ def serve():
     server.start()
     print("Server Started")
     server.wait_for_termination()
+
+
 
 if __name__ == "__main__":
     serve()
