@@ -12,18 +12,24 @@ import sqlite3
 from sqlite3 import Error
 import subprocess
 
+from timeit import default_timer
+
 global tiempoMaximoReporte
 tiempoMaximoReporte = 3
 global tiempoMaximoIndicador
 tiempoMaximoIndicador = 2
 global tiempoIndicador
 tiempoIndicador = None
+global tiempoReporte
+tiempoReporte = None
 
 global cola_id_indicadores
 cola_id_indicadores = []
 
 global cola_id_reportes
 cola_id_reportes = []
+
+
 
 '''
 
@@ -184,7 +190,30 @@ def asociarIDNagios():
 
 # ------------------ TIEMPO ------------------
 
+def setTiempoIndicador():
 
+    global tiempoMaximoIndicador
+    global tiempoIndicador
+
+    #elif (default_timer() - tiempoIndicador)/60 <= tiempoMaximoIndicador:
+
+    if tiempoIndicador != None and (time.time() - tiempoIndicador)/60 > tiempoMaximoIndicador:   
+        asociarIDNagios()
+        tiempoIndicador = time.time()
+    elif tiempoIndicador == None:
+        tiempoIndicador = time.time()
+    #tiempoIndicador = default_timer()
+
+def verificarTiempoIndicador():
+
+    global tiempoMaximoIndicador
+    global tiempoIndicador
+
+    if tiempoIndicador == None or (tiempoIndicador != None and (time.time() - tiempoIndicador)/60 > tiempoMaximoIndicador):
+        tiempoIndicador = None
+        return False
+    return True
+'''
 def comprobarTiempo(tiempo, tiempoMax, esIndicador):
 
     retorno = None
@@ -210,7 +239,7 @@ def comprobarTiempo(tiempo, tiempoMax, esIndicador):
     else :
 
         return tiempo    
-
+'''
 # --------------------------------------------
 
 
@@ -260,13 +289,9 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def IndicatorReport(self, request, context):
 
-    
         global tiempoIndicador
         global tiempoMaximoIndicador
         global cola_id_indicadores
-
-        tiempoIndicador = comprobarTiempo(tiempoIndicador, tiempoMaximoIndicador, True)
-
 
         tsIndicator = request.timestamp
         stamp = str(datetime.fromtimestamp(float(tsIndicator)))
@@ -280,6 +305,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         if request.detector == "NAGIOS":
             
+            setTiempoIndicador()
             cola_id_indicadores.append(id_indicador)
 
         serverReply = communication_pb2.ServerMessage()
@@ -305,32 +331,31 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios
-    global tiempoIndicador
+    #global tiempoIndicador
     #tiempoIndicador es el tiempo desde que se empezo a solicitar reportes (si no hay reportes es None)
-    global tiempoMaximoIndicador
+    #global tiempoMaximoIndicador
     #tiempoMaximoIndicador es el tiempo maximo para no volver a perdir reportes desde nagios
     global tiempoMaximoReporte
     #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
+    if tiempo!= None and (time.time()-tiempo)/60 > tiempoMaximoReporte:
+        tiempo = None
 
-    tiempoIndicador = comprobarTiempo(tiempoIndicador, tiempoMaximoIndicador, False)
-
-    tiempo = comprobarTiempo(tiempo, tiempoMaximoReporte, False)
-
-    print("Comprobamos: "+ str(tiempoIndicador) + " " + str(tiempo)) 
+    print("Comprobamos: "+ str(verificarTiempoIndicador()) + " " + str(tiempo)) 
     if mensaje == "Tengo un problema":
-        return "Dame tu reporte", time.time()/60
+        return "Dame tu reporte", tiempo
     
-
     else:
 
-        if tiempo == None and tiempoIndicador != None:
-            return "NAGIOS solicita tu reporte", time.time()/60
+        if (tiempo == None and verificarTiempoIndicador()):
+                  
+
+            return "NAGIOS solicita tu reporte", time.time()
 
         elif mensaje == "No pasa nada":
              return "Ok", tiempo
 
         else:
-            return "No te entiendo",tiempo 
+            return "No te entiendo", tiempo
 
 
 
