@@ -13,11 +13,9 @@ from sqlite3 import Error
 import subprocess
 
 global tiempoMaximoReporte
-tiempoMaximoReporte = 2
+tiempoMaximoReporte = 3
 global tiempoMaximoIndicador
-tiempoMaximoIndicador = 1
-global reporte
-reporte = False
+tiempoMaximoIndicador = 2
 global tiempoIndicador
 tiempoIndicador = None
 
@@ -51,7 +49,6 @@ def create_connection(db_file):
 
 
 def create_reporte(conn, datos):
-    
 
     sql = ''' INSERT INTO Reporte(Fecha, Hora, Datos)
               VALUES(?,?,?) '''
@@ -190,6 +187,7 @@ def asociarIDNagios():
 
 def comprobarTiempo(tiempo, tiempoMax, esIndicador):
 
+    retorno = None
 
     if tiempo != None and tiempo + tiempoMax > time.time()/60:
         
@@ -197,9 +195,21 @@ def comprobarTiempo(tiempo, tiempoMax, esIndicador):
 
             asociarIDNagios()
 
-        return None 
-        
-    return tiempo    
+            return (time.time()/60)
+
+        else:
+
+            return None 
+    
+
+    elif tiempo == None and esIndicador:
+
+        return (time.time()/60) 
+
+
+    else :
+
+        return tiempo    
 
 # --------------------------------------------
 
@@ -208,6 +218,8 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     
 
     def SubmitReport(self, request, context):
+
+        print("\nSubmitReport()\n")
 
         global cola_id_reportes
 
@@ -218,10 +230,12 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
              
         id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
 
+        print("\nSe recibio el reporte\n")
+
         #si es string
         dic = json.loads(request.json)
         
-        if request.json['Detector'] == "NAGIOS":
+        if dic['Detector'] == "NAGIOS":
 
             cola_id_reportes.append(id_reporte)
 
@@ -236,7 +250,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         tiempoInicial = None
         for request in request_iterator:
             mensaje, tiempoInicial = comprobar(request.message, tiempoInicial)
-            print("Solicitud de "+request.ip+": "+request.message)
+            print("Solicitud de "+request.ip+": "+request.message + "; Tiempo de reporte: " + str(tiempoInicial))
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = mensaje
             #serverReply.problem = request.problem
@@ -246,6 +260,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def IndicatorReport(self, request, context):
 
+    
         global tiempoIndicador
         global tiempoMaximoIndicador
         global cola_id_indicadores
@@ -261,9 +276,10 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
 
-        if request.detector == "NAGIOS" and tiempoIndicador == None:
+        print("Se recibio el indicador: " + str (tiempoIndicador))
+
+        if request.detector == "NAGIOS":
             
-            tiempoIndicador = time.time()/60
             cola_id_indicadores.append(id_indicador)
 
         serverReply = communication_pb2.ServerMessage()
@@ -291,18 +307,16 @@ def  comprobar(mensaje, tiempo):
     #Comprobamos si termino el tiempo de pedida de reporte por Nagios
     global tiempoIndicador
     #tiempoIndicador es el tiempo desde que se empezo a solicitar reportes (si no hay reportes es None)
-    global reporte
-    #reporte es True si se tiene que solicitar reporte
     global tiempoMaximoIndicador
     #tiempoMaximoIndicador es el tiempo maximo para no volver a perdir reportes desde nagios
     global tiempoMaximoReporte
     #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
 
-    tiempoIndicador = comprobarTiempo(tiempoIndicador, tiempoMaximoIndicador,True)
+    tiempoIndicador = comprobarTiempo(tiempoIndicador, tiempoMaximoIndicador, False)
 
     tiempo = comprobarTiempo(tiempo, tiempoMaximoReporte, False)
 
-
+    print("Comprobamos: "+ str(tiempoIndicador) + " " + str(tiempo)) 
     if mensaje == "Tengo un problema":
         return "Dame tu reporte", time.time()/60
     
