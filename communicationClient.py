@@ -21,7 +21,7 @@ stub = communication_pb2_grpc.CommunicationStub(channel)
 global tiempoLog
 tiempoLog = -1
 global tiempoReporte
-tiempoReporte = 1
+tiempoReporte = 20
 global tiempoLoki
 tiempoLoki = 120
 global contadorTiempoLoki
@@ -37,7 +37,7 @@ def get_client_stream_requests():
 
     while True:
         if contadorTiempoLoki % tiempoLoki == 0:
-            #ejecutarLoki()
+            ejecutarLoki()
             tiempoLog = 0
         
         mensaje = comprobarIndicador()
@@ -61,11 +61,11 @@ def comprobarIndicador():
         try:
             file = open("log.txt")
             line = file.readline()
+
             while line!= "":
                 request = communication_pb2.IndicatorMessage(ip = ip, timestamp = str(time.time()), indicator = line, detector = "LOKI")
                 reply = stub.IndicatorReport(request)
-                indicadores.append(reply)
-                print("Se recibio el indicador numero "+ reply)
+                indicadores.append(reply.message)
                 line = file.readline()
             file.close()
             remove("log.txt")
@@ -74,11 +74,11 @@ def comprobarIndicador():
             return ("No pasa nada")
         tiempoLog = -1
 
-
-def reporte():
+def reporte(detector):
     global ip
     global stub
     global mac
+    global indicadores
     info = {}
     subprocess.run("export LC_ALL=C", shell = True, check = True)
     info["lastConnections"] = {}
@@ -98,6 +98,7 @@ def reporte():
         suid[i[2:]] = line
     info["SUID-SGID"] = suid
     info["TimeStamp"] = time.strftime("%c")
+    info["Detector"] = detector
     crontabs = {}
     for i in getUsers():
         line = subprocess.getoutput("crontab -u "+i+" -l")
@@ -106,9 +107,11 @@ def reporte():
     data = json.dumps(info)
     request = communication_pb2.ReportMessage(ip = ip, json = data)
     reply = stub.SubmitReport(request)
-    print(reply)
-    while not bool(indicadores):
-        save = communication_pb2.ReportXIndicator(idReport = reply, idIndicator = indicadores.pop())
+    report = reply.message
+    while bool(indicadores):
+        indicador = indicadores.pop()
+        print(report)
+        save = communication_pb2.ReportXIndicator(idReport = report, idIndicator = indicador)
         replySave = stub.SaveIndicatorReport(save)
     
 
@@ -118,7 +121,9 @@ def run():
     for response in responses:
         print("Respuesta: " + response.message)
         if response.message == "Dame tu reporte":
-            reporte()
+            reporte("LOKI")
+        elif response.message == "NAGIOS solicita tu reporte":
+            reporte("NAGIOS")
 
 
 def getUsers():
