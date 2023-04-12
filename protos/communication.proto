@@ -5,40 +5,41 @@ package greet;
 // The greeting service definition.
 service Communication {
 	// Unary
-	rpc SubmitReport (ReportMessage) returns (ServerMessage);
+	rpc SubmitReport (ReportMessage) returns (ServerMessage); // Envia un reporte al servidor 
 	// Both Streaming
-	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage);
-  rpc IndicatorReport (IndicatorMessage) returns (ServerMessage);
-  rpc SaveIndicatorReport (ReportXIndicator) returns (ServerMessage);
+	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage); // Comunicacion bidireccional entre cliente y servidor
+  rpc IndicatorReport (IndicatorMessage) returns (ServerMessage); // Envia un reporte de indicador al servidor
+  
+  rpc SaveIndicatorReport (ReportXIndicator) returns (ServerMessage); // Envia ids para relacionar
   /*rpc ApiRequest (stream ClientRequest) returns (stream Data);*/
 }
 
 // The request message containing the user's name.
 message ClientMessage{
-  string ip = 1;
-  string message = 2;
+  string ip = 1; // IP del host que envia el mensaje
+  string message = 2; // Mensaje a enviar
 }
 
 // The response message containing the greetings.
 message ServerMessage {
-  string message = 1;
+  string message = 1; // Mensaje a enviar
 }
 
 message ReportMessage {
-  string ip = 1;
-	string json = 2;
+  string ip = 1; // IP del host que envia el reporte
+	string json = 2; // Reporte en formato JSON
 }
 
 message IndicatorMessage {
-  string ip = 1;
-  string timestamp = 2;
-  string indicator = 3;
-  string detector = 4;
+  string ip = 1; // IP del host donde se detecto el indicador
+  string timestamp = 2; // Timestamp de la deteccion
+  string indicator = 3; // Indicador detectado
+  string detector = 4; // Detector del indicador
 }
 
 message ReportXIndicator{
-  string idReport = 1;
-  string idIndicator = 2;
+  string idReport = 1; // ID del reporte
+  string idIndicator = 2; // ID del indicador
 }
 
 /*message ClientRequest{
