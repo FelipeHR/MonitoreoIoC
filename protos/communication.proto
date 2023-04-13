@@ -4,14 +4,18 @@ package greet;
 
 // The greeting service definition.
 service Communication {
-	// Unary
+	
 	rpc SubmitReport (ReportMessage) returns (ServerMessage); // Envia un reporte al servidor 
-	// Both Streaming
 	rpc BidirectionalCommunication (stream ClientMessage) returns (stream ServerMessage); // Comunicacion bidireccional entre cliente y servidor
   rpc IndicatorReport (IndicatorMessage) returns (ServerMessage); // Envia un reporte de indicador al servidor
-  
   rpc SaveIndicatorReport (ReportXIndicator) returns (ServerMessage); // Envia ids para relacionar
-  /*rpc ApiRequest (stream ClientRequest) returns (stream Data);*/
+  rpc ServerComprobationMD5 (ComprobationMD5) returns (ServerMessage); // Envia un md5 para comprobar si existe en la base de datos
+  // PARTE MIA
+  rpc ClientPetition (ClientRequest) returns (ServerMessage); // Envia una peticion al servidor para obtener informacion
+  rpc StreamingServerIndicator (stream IndicatorMessage) returns (ClientMessage); // Envia los indicadores detectados de parte del servidor a la app de terceros 
+  rpc StreamingServerReport (stream ReportMessage) returns (ClientMessage); // Envia los reportes recibidos de parte del servidor a la app de terceros
+  rpc IndicatorRequest (SpecificRequest) returns (stream IndicatorMessage); // Envia un indicador para obtener informacion
+  rpc ReportRequest (SpecificRequest) returns (stream ReportMessage); // Envia un reporte para obtener informacion
 }
 
 // The request message containing the user's name.
@@ -42,10 +46,16 @@ message ReportXIndicator{
   string idIndicator = 2; // ID del indicador
 }
 
-/*message ClientRequest{
-  int type = 1;
-}*/
+message ComprobationMD5{
+  string md5 = 1; // MD5 del programa
+}
 
-/*message Data{
-  string info = 1;
-}*/
+message SpecificRequest{
+  string start = 1; // Timestamp de inicio
+  string end = 2; // Timestamp de fin
+  string ip = 3; // IP del host
+}
+
+message ClientRequest{
+  int type = 1; // Tipo de peticion de parte de terceros
+}
