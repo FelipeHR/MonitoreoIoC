@@ -5,14 +5,6 @@ import subprocess
 import json
 import time
 from os import remove 
-
-class GrpcAuth(grpc.AuthMetadataPlugin):
-    def __init__(self, key):
-        self._key = key
-
-    def __call__(self, context, callback):
-        callback((('rpc-auth-header', self._key),), None)
-
 credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
     open('certificates/host-key.pem','rb').read(),open('certificates/host.pem','rb').read())
 
@@ -23,10 +15,7 @@ ip = subprocess.getoutput("hostname -I").split(' ')[0]
 global mac
 mac = subprocess.getoutput("cat /sys/class/net/eno1/address")
 global channel
-channel = grpc.secure_channel(ipserver,grpc.composite_channel_credentials(
-    grpc.ssl_channel_credentials(
-        open('certificates/ca.pem','rb').read()),
-        grpc.metadata_call_credentials(GrpcAuth("Esta es la contraseña"))))
+channel = grpc.secure_channel(ipserver,credentials)
 global stub
 stub = communication_pb2_grpc.CommunicationStub(channel)
 global tiempoLog
