@@ -35,6 +35,36 @@ class CommunicationStub(object):
                 request_serializer=communication__pb2.ReportXIndicator.SerializeToString,
                 response_deserializer=communication__pb2.ServerMessage.FromString,
                 )
+        self.ServerComprobationMD5 = channel.unary_unary(
+                '/greet.Communication/ServerComprobationMD5',
+                request_serializer=communication__pb2.ComprobationMD5.SerializeToString,
+                response_deserializer=communication__pb2.ServerMessage.FromString,
+                )
+        self.ClientPetition = channel.unary_unary(
+                '/greet.Communication/ClientPetition',
+                request_serializer=communication__pb2.ClientRequest.SerializeToString,
+                response_deserializer=communication__pb2.ServerMessage.FromString,
+                )
+        self.StreamingServerIndicator = channel.stream_unary(
+                '/greet.Communication/StreamingServerIndicator',
+                request_serializer=communication__pb2.IndicatorMessage.SerializeToString,
+                response_deserializer=communication__pb2.ClientMessage.FromString,
+                )
+        self.StreamingServerReport = channel.stream_unary(
+                '/greet.Communication/StreamingServerReport',
+                request_serializer=communication__pb2.ReportMessage.SerializeToString,
+                response_deserializer=communication__pb2.ClientMessage.FromString,
+                )
+        self.IndicatorRequest = channel.unary_stream(
+                '/greet.Communication/IndicatorRequest',
+                request_serializer=communication__pb2.SpecificRequest.SerializeToString,
+                response_deserializer=communication__pb2.IndicatorMessage.FromString,
+                )
+        self.ReportRequest = channel.unary_stream(
+                '/greet.Communication/ReportRequest',
+                request_serializer=communication__pb2.SpecificRequest.SerializeToString,
+                response_deserializer=communication__pb2.ReportMessage.FromString,
+                )
 
 
 class CommunicationServicer(object):
@@ -42,27 +72,71 @@ class CommunicationServicer(object):
     """
 
     def SubmitReport(self, request, context):
-        """Unary
+        """Envia un reporte al servidor 
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BidirectionalCommunication(self, request_iterator, context):
-        """Both Streaming
+        """Comunicacion bidireccional entre cliente y servidor
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def IndicatorReport(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Envia un reporte de indicador al servidor
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def SaveIndicatorReport(self, request, context):
-        """rpc ApiRequest (stream ClientRequest) returns (stream Data);
+        """Envia ids para relacionar
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ServerComprobationMD5(self, request, context):
+        """Envia un md5 para comprobar si existe en la base de datos
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ClientPetition(self, request, context):
+        """PARTE MIA
+        Envia una peticion al servidor para obtener informacion
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StreamingServerIndicator(self, request_iterator, context):
+        """Envia los indicadores detectados de parte del servidor a la app de terceros 
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StreamingServerReport(self, request_iterator, context):
+        """Envia los reportes recibidos de parte del servidor a la app de terceros
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def IndicatorRequest(self, request, context):
+        """Envia un indicador para obtener informacion
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ReportRequest(self, request, context):
+        """Envia un reporte para obtener informacion
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,6 +164,36 @@ def add_CommunicationServicer_to_server(servicer, server):
                     servicer.SaveIndicatorReport,
                     request_deserializer=communication__pb2.ReportXIndicator.FromString,
                     response_serializer=communication__pb2.ServerMessage.SerializeToString,
+            ),
+            'ServerComprobationMD5': grpc.unary_unary_rpc_method_handler(
+                    servicer.ServerComprobationMD5,
+                    request_deserializer=communication__pb2.ComprobationMD5.FromString,
+                    response_serializer=communication__pb2.ServerMessage.SerializeToString,
+            ),
+            'ClientPetition': grpc.unary_unary_rpc_method_handler(
+                    servicer.ClientPetition,
+                    request_deserializer=communication__pb2.ClientRequest.FromString,
+                    response_serializer=communication__pb2.ServerMessage.SerializeToString,
+            ),
+            'StreamingServerIndicator': grpc.stream_unary_rpc_method_handler(
+                    servicer.StreamingServerIndicator,
+                    request_deserializer=communication__pb2.IndicatorMessage.FromString,
+                    response_serializer=communication__pb2.ClientMessage.SerializeToString,
+            ),
+            'StreamingServerReport': grpc.stream_unary_rpc_method_handler(
+                    servicer.StreamingServerReport,
+                    request_deserializer=communication__pb2.ReportMessage.FromString,
+                    response_serializer=communication__pb2.ClientMessage.SerializeToString,
+            ),
+            'IndicatorRequest': grpc.unary_stream_rpc_method_handler(
+                    servicer.IndicatorRequest,
+                    request_deserializer=communication__pb2.SpecificRequest.FromString,
+                    response_serializer=communication__pb2.IndicatorMessage.SerializeToString,
+            ),
+            'ReportRequest': grpc.unary_stream_rpc_method_handler(
+                    servicer.ReportRequest,
+                    request_deserializer=communication__pb2.SpecificRequest.FromString,
+                    response_serializer=communication__pb2.ReportMessage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -167,5 +271,107 @@ class Communication(object):
         return grpc.experimental.unary_unary(request, target, '/greet.Communication/SaveIndicatorReport',
             communication__pb2.ReportXIndicator.SerializeToString,
             communication__pb2.ServerMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ServerComprobationMD5(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/greet.Communication/ServerComprobationMD5',
+            communication__pb2.ComprobationMD5.SerializeToString,
+            communication__pb2.ServerMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ClientPetition(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/greet.Communication/ClientPetition',
+            communication__pb2.ClientRequest.SerializeToString,
+            communication__pb2.ServerMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def StreamingServerIndicator(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/greet.Communication/StreamingServerIndicator',
+            communication__pb2.IndicatorMessage.SerializeToString,
+            communication__pb2.ClientMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def StreamingServerReport(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/greet.Communication/StreamingServerReport',
+            communication__pb2.ReportMessage.SerializeToString,
+            communication__pb2.ClientMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def IndicatorRequest(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/greet.Communication/IndicatorRequest',
+            communication__pb2.SpecificRequest.SerializeToString,
+            communication__pb2.IndicatorMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ReportRequest(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/greet.Communication/ReportRequest',
+            communication__pb2.SpecificRequest.SerializeToString,
+            communication__pb2.ReportMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
