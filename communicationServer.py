@@ -29,6 +29,22 @@ cola_id_indicadores = []
 global cola_id_reportes
 cola_id_reportes = []
 
+class AuthInterceptor(grpc.ServerInterceptor):
+    def __init__(self, key):
+        self._valid_metadata = ('rpc-auth-header', key)
+
+        def deny(_, context):
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, 'Invalid key')
+
+        self._deny = grpc.unary_unary_rpc_method_handler(deny)
+
+    def intercept_service(self, continuation, handler_call_details):
+        meta = handler_call_details.invocation_metadata
+
+        if meta and meta[0] == self._valid_metadata:
+            return continuation(handler_call_details)
+        else:
+            return self._deny
 
 
 '''
@@ -360,7 +376,10 @@ def  comprobar(mensaje, tiempo):
 
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors=(AuthInterceptor("Esta es la contraseña"),)
+    )
     communication_pb2_grpc.add_CommunicationServicer_to_server(CommunicationServicer(), server)
     credentials = grpc.ssl_server_credentials( [    (open('certificates/server100-key.pem', 'rb').read(), open('certificates/server100.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
     server.add_secure_port("192.168.4.100:50051", credentials)
