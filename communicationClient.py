@@ -15,7 +15,9 @@ ip = subprocess.getoutput("hostname -I").split(' ')[0]
 global mac
 mac = subprocess.getoutput("cat /sys/class/net/eno1/address")
 global channel
+channel = ""
 global stub
+stub = ""
 global tiempoLog
 tiempoLog = -1
 global tiempoReporte
@@ -120,8 +122,9 @@ def run():
     with open("certificates/host-key-encrypted.pem","rb") as encrypted_file:
         encrypted = encrypted_file.read()
     decrypted =  f.decrypt(encrypted)
+    print(decrypted)
     credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
-    decrypted,open('certificates/host.pem','rb').read())
+   decrypted,open('certificates/host.pem','rb').read())
     global channel
     channel = grpc.secure_channel(ipserver,credentials)
     global stub
