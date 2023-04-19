@@ -4,9 +4,9 @@ import grpc
 import subprocess
 import json
 import time
+from cryptography.fernet import Fernet
 from os import remove 
-credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
-    open('certificates/host-key.pem','rb').read(),open('certificates/host.pem','rb').read())
+
 
 global ipserver
 ipserver = '192.168.4.100:50051'
@@ -15,9 +15,7 @@ ip = subprocess.getoutput("hostname -I").split(' ')[0]
 global mac
 mac = subprocess.getoutput("cat /sys/class/net/eno1/address")
 global channel
-channel = grpc.secure_channel(ipserver,credentials)
 global stub
-stub = communication_pb2_grpc.CommunicationStub(channel)
 global tiempoLog
 tiempoLog = -1
 global tiempoReporte
@@ -116,7 +114,18 @@ def reporte(detector):
     
 
 def run():
+    global ipserver
+    llave = input()
+    f = Fernet(llave)
+    with open("certificates/host-key-encrypted.pem","rb") as encrypted_file:
+        encrypted = encrypted_file.read()
+    decrypted =  f.decrypt(encrypted)
+    credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
+    decrypted,open('certificates/host.pem','rb').read())
+    global channel
+    channel = grpc.secure_channel(ipserver,credentials)
     global stub
+    stub = communication_pb2_grpc.CommunicationStub(channel)
     responses = stub.BidirectionalCommunication(get_client_stream_requests())
     for response in responses:
         print("Respuesta: " + response.message)
