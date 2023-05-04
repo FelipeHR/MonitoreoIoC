@@ -81,16 +81,17 @@ def reporte(detector):
     global indicadores
     info = {}
     subprocess.run("export LC_ALL=C", shell = True, check = True)
-    info["lastConnections"] = {}
-    info["lastConnections"]["Established"] = subprocess.getoutput("netstat -antup | grep 'ESTABLISHED'").split('\n')
-    info["lastConnections"]["Listen"] = subprocess.getoutput("netstat -antup | grep 'LISTEN'").split('\n')
-    info["lastConnections"]["Others"] = subprocess.getoutput("netstat -antup | grep 'TIME_WAIT'").split('\n')
-    info["lastConnectionsSSH"] = subprocess.getoutput("ss | grep ssh").split('\n')
-    info["lastUsers"] = subprocess.getoutput("last").split('\n')
-    info["processes"] = subprocess.getoutput("ps auxf").split('\n')
+    info["OpenPorts"] = subprocess.getoutput("netstat -tulpna").split('\n')
+    info["LastConnections"] = {}
+    info["LastConnections"]["Established"] = subprocess.getoutput("netstat -antup | grep 'ESTABLISHED'").split('\n')
+    info["LastConnections"]["Listen"] = subprocess.getoutput("netstat -antup | grep 'LISTEN'").split('\n')
+    info["LastConnections"]["Others"] = subprocess.getoutput("netstat -antup | grep 'TIME_WAIT'").split('\n')
+    info["LastConnectionsSSH"] = subprocess.getoutput("ss | grep ssh").split('\n')
+    info["LastUsers"] = subprocess.getoutput("last").split('\n')
+    info["Processes"] = subprocess.getoutput("ps auxf").split('\n')
     info["AuthLogs"] = subprocess.getoutput("cat /var/log/auth.log").split('\n')
     info["SysLogs"] = subprocess.getoutput("cat /var/log/syslog").split('\n') #Datos de actividad del sistema
-    info["RootKits"] = subprocess.getoutput("chkrootkit -q").split('\n')
+    #info["RootKits"] = subprocess.getoutput("chkrootkit -q").split('\n')
     info["sudoers"] = subprocess.getoutput("getent group sudo | cut -d: -f4").split('\n')
     suid = {}
     for i in subprocess.getoutput("find . -perm /6000").split("\n"): #Se guardan los archivos
@@ -103,7 +104,7 @@ def reporte(detector):
     for i in getUsers():
         line = subprocess.getoutput("crontab -u "+i+" -l")
         crontabs[i] = line
-    info["crontabs"] = crontabs
+    info["Crontabs"] = crontabs
     data = json.dumps(info)
     request = communication_pb2.ReportMessage(ip = ip, json = data)
     reply = stub.SubmitReport(request)
