@@ -156,6 +156,8 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
     return id_indicador
 
 
+
+
 # ---------------------------------------------------------
 
 def asociarIDLoki(id_indicador, id_reporte):
@@ -299,20 +301,26 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         fechaIndicator = FyH[0]
         horaIndicator = FyH[1]
 
-        id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
 
-        print("Se recibio el indicador: " + str (tiempoIndicador))
+        if request.detector == "LOKI":
+
+            id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
+            print("Se recibio el indicador: " + str (tiempoIndicador))
+
+            serverReply = communication_pb2.ServerMessage()
+            serverReply.message = str(id_indicador)
+
 
         if request.detector == "NAGIOS":
             
-            setTiempoIndicador()
-            cola_id_indicadores.append(id_indicador)
 
-        serverReply = communication_pb2.ServerMessage()
-        serverReply.message = str(id_indicador)
+            setTiempoIndicador()
+            #cola_id_indicadores.append(id_indicador)
+
+            serverReply = communication_pb2.ServerMessage()
+            serverReply.message = "Se pediran los reportes"
 
         return serverReply
-
 
 
     def SaveIndicatorReport(self, request, context):
@@ -352,7 +360,7 @@ def  comprobar(mensaje, tiempo):
             return "NAGIOS solicita tu reporte", time.time()
 
         elif mensaje == "No pasa nada":
-             return "Ok", tiempo
+            return "Ok", tiempo
 
         else:
             return "No te entiendo", tiempo
