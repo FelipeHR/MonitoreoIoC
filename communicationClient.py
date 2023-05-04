@@ -118,14 +118,13 @@ def reporte(detector):
 
 def run():
     global ipserver
-    llave = input()
-    f = Fernet(llave)
+    llave = input() #Se pide la llave para desencriptar la clave privada
+    f = Fernet(llave) #Se crea el objeto de la llave
     with open("certificates/host-key-encrypted.pem","rb") as encrypted_file:
-        encrypted = encrypted_file.read()
-    decrypted =  f.decrypt(encrypted)
-    print(decrypted)
+        encrypted = encrypted_file.read() #Se lee el archivo encriptado
+    decrypted =  f.decrypt(encrypted) #Se desencripta el archivo
     credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
-   decrypted,open('certificates/host.pem','rb').read())
+   decrypted,open('certificates/host.pem','rb').read()) #Se crean las credenciales
     global channel
     channel = grpc.secure_channel(ipserver,credentials)
     global stub
