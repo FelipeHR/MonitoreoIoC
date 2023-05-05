@@ -121,7 +121,7 @@ def guardarReporte(origen, fecha, hora, datos):
         d = datetime.now()
         
         #da = json.load(Dir)
-        dat = json.dumps(datos)
+        #dat = json.dumps(datos)
 
         # Guarda Reporte
         datos_reporte = (fecha, hora, dat)
