@@ -16,18 +16,19 @@ from timeit import default_timer
 
 global tiempoMaximoReporte
 tiempoMaximoReporte = 3
-global tiempoMaximoIndicador
-tiempoMaximoIndicador = 2
-global tiempoIndicador
-tiempoIndicador = None
 global tiempoReporte
 tiempoReporte = None
 
-global cola_id_indicadores
-cola_id_indicadores = []
+global reporteGlobalTiempo 
+reporteGlobalTiempo = 240
+global reporteGlobal
+reporteGlobal = time.time()/60 + (reporteGlobalTiempo - 5)
+#A los 5 minutos de que empieza a correr el servidor, le pedira un reporte a todos los clientes conectados
+#la siguiente peticion sera despues de reporteGlobalTiempo minutos
 
-global cola_id_reportes
-cola_id_reportes = []
+
+global colaReportesNagios 
+colaReportesNagios = []
 
 
 
@@ -169,52 +170,9 @@ def asociarIDLoki(id_indicador, id_reporte):
     create_reporte_indicador(conn, datos_reporte_indicador)
 
 
-def asociarIDNagios():
-
-    global cola_id_reportes
-    global cola_id_indicadores
-
-
-    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
-    conn = create_connection(database)
-
-    for reporte in cola_id_reportes:
-
-        for indicador in cola_id_indicadores:
-
-            datos_reporte_indicador = (indicador, reporte)
-            create_reporte_indicador(conn, datos_reporte_indicador)
-
-    conn.close()
-
-    cola_id_reportes = []
-    cola_id_indicadores = []
 
 # ------------------ TIEMPO ------------------
 
-def setTiempoIndicador():
-
-    global tiempoMaximoIndicador
-    global tiempoIndicador
-
-    #elif (default_timer() - tiempoIndicador)/60 <= tiempoMaximoIndicador:
-
-    if tiempoIndicador != None and (time.time() - tiempoIndicador)/60 > tiempoMaximoIndicador:   
-        asociarIDNagios()
-        tiempoIndicador = time.time()
-    elif tiempoIndicador == None:
-        tiempoIndicador = time.time()
-    #tiempoIndicador = default_timer()
-
-def verificarTiempoIndicador():
-
-    global tiempoMaximoIndicador
-    global tiempoIndicador
-
-    if tiempoIndicador == None or (tiempoIndicador != None and (time.time() - tiempoIndicador)/60 > tiempoMaximoIndicador):
-        tiempoIndicador = None
-        return False
-    return True
 '''
 def comprobarTiempo(tiempo, tiempoMax, esIndicador):
 
@@ -252,7 +210,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         print("\nSubmitReport()\n")
 
-        global cola_id_reportes
 
         d = datetime.now()
 
@@ -266,9 +223,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         #si es string
         dic = json.loads(request.json)
         
-        if dic['Detector'] == "NAGIOS":
-
-            cola_id_reportes.append(id_reporte)
 
         serverReply = communication_pb2.ServerMessage()
         serverReply.message = str(id_reporte)
@@ -278,9 +232,10 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 
     def BidirectionalCommunication(self, request_iterator, context):
-        tiempoInicial = None
+        entregarReporte = None
+
         for request in request_iterator:
-            mensaje, tiempoInicial = comprobar(request.message, tiempoInicial)
+            mensaje, tiempoInicial = comprobar(request.message, entregarReporte, request.ip)
             print("Solicitud de "+request.ip+": "+request.message + "; Tiempo de reporte: " + str(tiempoInicial))
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = mensaje
@@ -290,10 +245,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 
     def IndicatorReport(self, request, context):
-
-        global tiempoIndicador
-        global tiempoMaximoIndicador
-        global cola_id_indicadores
 
         tsIndicator = request.timestamp
         stamp = str(datetime.fromtimestamp(float(tsIndicator)))
@@ -305,18 +256,14 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         if request.detector == "LOKI":
 
             id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
-            print("Se recibio el indicador: " + str (tiempoIndicador))
+            print("Se recibio el indicador: ")
 
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = str(id_indicador)
 
 
         if request.detector == "NAGIOS":
-            
-
-            setTiempoIndicador()
-            #cola_id_indicadores.append(id_indicador)
-
+            colaReportesNagios.append(request.ip)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = "Se pediran los reportes"
 
@@ -335,35 +282,52 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         return serverReply
 
-
-
-def  comprobar(mensaje, tiempo):
-    #Comprobamos si termino el tiempo de pedida de reporte por Nagios
-    #global tiempoIndicador
-    #tiempoIndicador es el tiempo desde que se empezo a solicitar reportes (si no hay reportes es None)
-    #global tiempoMaximoIndicador
-    #tiempoMaximoIndicador es el tiempo maximo para no volver a perdir reportes desde nagios
+def verificarReporteGlobal(reporte):
+    global reporteGlobal
+    global reporteGlobalTiempo
+    global tiempoReporte
     global tiempoMaximoReporte
-    #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
-    if tiempo!= None and (time.time()-tiempo)/60 > tiempoMaximoReporte:
-        tiempo = None
 
-    print("Comprobamos: "+ str(verificarTiempoIndicador()) + " " + str(tiempo)) 
+    if reporteGlobal < time.time()/60 - reporteGlobalTiempo:
+        tiempoReporte = time.time()/60
+        reporteGlobal = time.time()/60 
+    
+    if tiempoReporte != None:
+        if time.time()/60 - tiempoReporte > tiempoMaximoReporte:
+            tiempoReporte = None
+            return None
+
+        if reporte == None :
+            return True
+        
+        else:
+            return False        
+        
+    return None
+
+
+def  comprobar(mensaje, reporte, ip):
+    global colaReportesNagios
+    #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
+
+    reporte = verificarReporteGlobal(reporte)
+
     if mensaje == "Tengo un problema":
-        return "Dame tu reporte", tiempo
+        return "Dame tu reporte", reporte 
     
     else:
+        if (reporte):
+            return "Solicitud de reporte global", reporte 
 
-        if (tiempo == None and verificarTiempoIndicador()):
-                  
-
-            return "NAGIOS solicita tu reporte", time.time()
-
+        if ip in colaReportesNagios:
+            colaReportesNagios.remove(ip)
+            return "NAGIOS solicita tu reporte", reporte
+    
         elif mensaje == "No pasa nada":
-            return "Ok", tiempo
+            return "Ok", reporte 
 
         else:
-            return "No te entiendo", tiempo
+            return "No te entiendo", reporte 
 
 
 

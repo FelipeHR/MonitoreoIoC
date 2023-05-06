@@ -132,8 +132,13 @@ def run():
     responses = stub.BidirectionalCommunication(get_client_stream_requests())
     for response in responses:
         print("Respuesta: " + response.message)
+
         if response.message == "Dame tu reporte":
             reporte("LOKI")
+
+        elif response.message == "Solicitud de reporte global":
+            reporte("GLOBAL")
+            
         elif response.message == "NAGIOS solicita tu reporte":
             reporte("NAGIOS")
 
