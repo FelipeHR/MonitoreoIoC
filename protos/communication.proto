@@ -11,9 +11,8 @@ service Communication {
   rpc SaveIndicatorReport (ReportXIndicator) returns (ServerMessage); // Envia ids para relacionar
   rpc ServerComprobationMD5 (ComprobationMD5) returns (ServerMessage); // Envia un md5 para comprobar si existe en la base de datos
   // PARTE MIA
-  rpc ClientPetition (ClientRequest) returns (ServerMessage); // Envia una peticion al servidor para obtener informacion
-  rpc StreamingServerIndicator (stream IndicatorMessage) returns (ClientMessage); // Envia los indicadores detectados de parte del servidor a la app de terceros 
-  rpc StreamingServerReport (stream ReportMessage) returns (ClientMessage); // Envia los reportes recibidos de parte del servidor a la app de terceros
+  rpc StreamingServerIndicator  (ClientMessage) returns (stream IndicatorMessage); // Envia los indicadores detectados de parte del servidor a la app de terceros 
+  rpc StreamingServerReport (ClientMessage) returns (stream ReportMessage) ; // Envia los reportes recibidos de parte del servidor a la app de terceros
   rpc IndicatorRequest (SpecificRequest) returns (stream IndicatorMessage); // Envia un indicador para obtener informacion
   rpc ReportRequest (SpecificRequest) returns (stream ReportMessage); // Envia un reporte para obtener informacion
 } 
@@ -49,14 +48,11 @@ message ReportXIndicator{
 message ComprobationMD5{
   string IP = 1; //Direccion IP 
   string md5 = 2; // MD5 del programa
+  string archive = 3; // Nombre del archivo
 }
 
 message SpecificRequest{
   string start = 1; // Timestamp de inicio
   string end = 2; // Timestamp de fin
   string ip = 3; // IP del host
-}
-
-message ClientRequest{
-  string type = 1; // Tipo de peticion de parte de terceros
 }

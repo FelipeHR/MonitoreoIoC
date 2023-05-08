@@ -129,6 +129,7 @@ def run():
     channel = grpc.secure_channel(ipserver,credentials)
     global stub
     stub = communication_pb2_grpc.CommunicationStub(channel)
+    
     responses = stub.BidirectionalCommunication(get_client_stream_requests())
     for response in responses:
         print("Respuesta: " + response.message)
@@ -141,6 +142,14 @@ def run():
             
         elif response.message == "NAGIOS solicita tu reporte":
             reporte("NAGIOS")
+
+        elif response.message == "Servidor solicita tu reporte":
+            reporte("MD5")
+        
+        elif response.message == "Cerrar conexion":
+            print("Se cerrara la conexion")
+            channel.close()
+            break
 
 
 def getUsers():

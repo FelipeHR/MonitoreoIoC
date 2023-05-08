@@ -30,7 +30,11 @@ reporteGlobal = time.time()/60 + (reporteGlobalTiempo - 5)
 global colaReportesNagios 
 colaReportesNagios = []
 
+global colaReportesMD5
+colaReportesMD5 = []
 
+global colaCerrarConexion
+colaCerrarConexion = []
 
 '''
 
@@ -125,7 +129,7 @@ def guardarReporte(origen, fecha, hora, datos):
         #dat = json.dumps(datos)
 
         # Guarda Reporte
-        datos_reporte = (fecha, hora, dat)
+        datos_reporte = (fecha, hora, datos)
         id_reporte = create_reporte(conn, datos_reporte)
 
         # Relaciona reporte con host
@@ -253,7 +257,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         horaIndicator = FyH[1]
 
 
-        if request.detector == "LOKI":
+        if request.detector == "LOKI" or request.detector == "MD5":
 
             id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
             print("Se recibio el indicador: ")
@@ -282,6 +286,47 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         return serverReply
 
+    def ServerComprobationMD5(self, request, context):
+        global colaReportesMD5
+        md5Host = request.md5
+        ipHost = request.ip
+        archivo = request.archive
+        
+        comprobacion = True
+        #consulta a la bd si el md5 del archivo es igual al md5 que se envio
+        mensaje = "El archivo no ha sido modificado"
+        if(not comprobacion):
+            mensaje = "El archivo ha sido modificado"
+            descripcion = "El archivo " + archivo + " ha sido modificado"
+            #fecha
+            fecha = datetime.now()
+            #hora
+            hora = str(datetime.fromtimestamp(float(d.timestamp())))
+            guardarIndicador(descripcion, "MD5", ipHost, fecha, hora )
+            #Levantamos un indicador de compromiso, y posteriormente le pedimos reporte al host mediante una cola de reportes
+            colaReportesMD5.append(ipHost)    
+
+        serverReply = communication_pb2.ServerMessage(mensaje)
+
+        return serverReply
+    
+    def StreamingServerIndicator(self, request_iterator, context):
+        #Crear cola (una cola por cada ip, es decir una cola de colas) de indicadores para cada ip de terceros 
+        return super().StreamingServerIndicator(request_iterator, context)
+    
+    def StreamingServerReport(self, request_iterator, context):
+        #Crear cola (una cola por cada ip, es decir una cola de colas) de reportes para cada ip de terceros 
+        return super().StreamingServerReport(request_iterator, context)
+    
+    def IndicatorRequest(self, request, context):
+        return super().SpecificReport(request, context)
+    
+    def ReportRequest(self, request, context):
+        return super().SpecificIndicator(request, context)
+    
+
+
+
 def verificarReporteGlobal(reporte):
     global reporteGlobal
     global reporteGlobalTiempo
@@ -308,6 +353,7 @@ def verificarReporteGlobal(reporte):
 
 def  comprobar(mensaje, reporte, ip):
     global colaReportesNagios
+    global colaReportesMD5
     #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
 
     reporte = verificarReporteGlobal(reporte)
@@ -319,10 +365,19 @@ def  comprobar(mensaje, reporte, ip):
         if (reporte):
             return "Solicitud de reporte global", reporte 
 
-        if ip in colaReportesNagios:
+        elif ip in colaReportesNagios:
             colaReportesNagios.remove(ip)
             return "NAGIOS solicita tu reporte", reporte
-    
+
+        elif ip in colaReportesMD5:
+            colaReportesMD5.remove(ip)
+            colaCerrarConexion.append(ip)
+            return "Server solicita tu reporte", reporte
+        
+        elif ip in colaCerrarConexion:
+            colaCerrarConexion.remove(ip)
+            return "Cerrar conexion", reporte
+        
         elif mensaje == "No pasa nada":
             return "Ok", reporte 
 
