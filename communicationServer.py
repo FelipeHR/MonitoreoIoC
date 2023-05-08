@@ -321,9 +321,11 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         return super().StreamingServerReport(request_iterator, context)
     
     def IndicatorRequest(self, request, context):
+        #Crear consulta a la base de datos y construir la informacion del indicador 
         return super().SpecificReport(request, context)
     
     def ReportRequest(self, request, context):
+        #Crear consulta a la base de datos y construir la informacion del reporte 
         return super().SpecificIndicator(request, context)
     
 
