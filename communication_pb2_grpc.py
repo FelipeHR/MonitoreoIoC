@@ -40,20 +40,15 @@ class CommunicationStub(object):
                 request_serializer=communication__pb2.ComprobationMD5.SerializeToString,
                 response_deserializer=communication__pb2.ServerMessage.FromString,
                 )
-        self.ClientPetition = channel.unary_unary(
-                '/greet.Communication/ClientPetition',
-                request_serializer=communication__pb2.ClientRequest.SerializeToString,
-                response_deserializer=communication__pb2.ServerMessage.FromString,
-                )
-        self.StreamingServerIndicator = channel.stream_unary(
+        self.StreamingServerIndicator = channel.unary_stream(
                 '/greet.Communication/StreamingServerIndicator',
-                request_serializer=communication__pb2.IndicatorMessage.SerializeToString,
-                response_deserializer=communication__pb2.ClientMessage.FromString,
+                request_serializer=communication__pb2.ClientMessage.SerializeToString,
+                response_deserializer=communication__pb2.IndicatorMessage.FromString,
                 )
-        self.StreamingServerReport = channel.stream_unary(
+        self.StreamingServerReport = channel.unary_stream(
                 '/greet.Communication/StreamingServerReport',
-                request_serializer=communication__pb2.ReportMessage.SerializeToString,
-                response_deserializer=communication__pb2.ClientMessage.FromString,
+                request_serializer=communication__pb2.ClientMessage.SerializeToString,
+                response_deserializer=communication__pb2.ReportMessage.FromString,
                 )
         self.IndicatorRequest = channel.unary_stream(
                 '/greet.Communication/IndicatorRequest',
@@ -106,22 +101,15 @@ class CommunicationServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ClientPetition(self, request, context):
+    def StreamingServerIndicator(self, request, context):
         """PARTE MIA
-        Envia una peticion al servidor para obtener informacion
+        Envia los indicadores detectados de parte del servidor a la app de terceros 
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StreamingServerIndicator(self, request_iterator, context):
-        """Envia los indicadores detectados de parte del servidor a la app de terceros 
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def StreamingServerReport(self, request_iterator, context):
+    def StreamingServerReport(self, request, context):
         """Envia los reportes recibidos de parte del servidor a la app de terceros
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -170,20 +158,15 @@ def add_CommunicationServicer_to_server(servicer, server):
                     request_deserializer=communication__pb2.ComprobationMD5.FromString,
                     response_serializer=communication__pb2.ServerMessage.SerializeToString,
             ),
-            'ClientPetition': grpc.unary_unary_rpc_method_handler(
-                    servicer.ClientPetition,
-                    request_deserializer=communication__pb2.ClientRequest.FromString,
-                    response_serializer=communication__pb2.ServerMessage.SerializeToString,
-            ),
-            'StreamingServerIndicator': grpc.stream_unary_rpc_method_handler(
+            'StreamingServerIndicator': grpc.unary_stream_rpc_method_handler(
                     servicer.StreamingServerIndicator,
-                    request_deserializer=communication__pb2.IndicatorMessage.FromString,
-                    response_serializer=communication__pb2.ClientMessage.SerializeToString,
+                    request_deserializer=communication__pb2.ClientMessage.FromString,
+                    response_serializer=communication__pb2.IndicatorMessage.SerializeToString,
             ),
-            'StreamingServerReport': grpc.stream_unary_rpc_method_handler(
+            'StreamingServerReport': grpc.unary_stream_rpc_method_handler(
                     servicer.StreamingServerReport,
-                    request_deserializer=communication__pb2.ReportMessage.FromString,
-                    response_serializer=communication__pb2.ClientMessage.SerializeToString,
+                    request_deserializer=communication__pb2.ClientMessage.FromString,
+                    response_serializer=communication__pb2.ReportMessage.SerializeToString,
             ),
             'IndicatorRequest': grpc.unary_stream_rpc_method_handler(
                     servicer.IndicatorRequest,
@@ -292,7 +275,7 @@ class Communication(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def ClientPetition(request,
+    def StreamingServerIndicator(request,
             target,
             options=(),
             channel_credentials=None,
@@ -302,14 +285,14 @@ class Communication(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/greet.Communication/ClientPetition',
-            communication__pb2.ClientRequest.SerializeToString,
-            communication__pb2.ServerMessage.FromString,
+        return grpc.experimental.unary_stream(request, target, '/greet.Communication/StreamingServerIndicator',
+            communication__pb2.ClientMessage.SerializeToString,
+            communication__pb2.IndicatorMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def StreamingServerIndicator(request_iterator,
+    def StreamingServerReport(request,
             target,
             options=(),
             channel_credentials=None,
@@ -319,26 +302,9 @@ class Communication(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.stream_unary(request_iterator, target, '/greet.Communication/StreamingServerIndicator',
-            communication__pb2.IndicatorMessage.SerializeToString,
-            communication__pb2.ClientMessage.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def StreamingServerReport(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.stream_unary(request_iterator, target, '/greet.Communication/StreamingServerReport',
-            communication__pb2.ReportMessage.SerializeToString,
-            communication__pb2.ClientMessage.FromString,
+        return grpc.experimental.unary_stream(request, target, '/greet.Communication/StreamingServerReport',
+            communication__pb2.ClientMessage.SerializeToString,
+            communication__pb2.ReportMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

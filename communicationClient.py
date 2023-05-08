@@ -4,6 +4,7 @@ import grpc
 import subprocess
 import json
 import time
+import hashlib
 from cryptography.fernet import Fernet
 from os import remove 
 
@@ -114,6 +115,9 @@ def reporte(detector):
         print(report)
         save = communication_pb2.ReportXIndicator(idReport = report, idIndicator = indicador)
         replySave = stub.SaveIndicatorReport(save)
+
+
+def hashComprobation():
     
 
 def run():
@@ -130,6 +134,8 @@ def run():
     global stub
     stub = communication_pb2_grpc.CommunicationStub(channel)
     
+     
+
     responses = stub.BidirectionalCommunication(get_client_stream_requests())
     for response in responses:
         print("Respuesta: " + response.message)

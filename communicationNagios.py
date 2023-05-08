@@ -20,7 +20,7 @@ stub = communication_pb2_grpc.CommunicationStub(channel)
 
 def reporte():
 
-    request = communication_pb2.IndicatorMessage(indicator = sys.argv[2], ip = sys.argv[1], timestamp = time.time(), detector = "NAGIOS")
+    request = communication_pb2.IndicatorMessage(indicator = sys.argv[2], ip = sys.argv[1], timestamp = str(time.time()), detector = "NAGIOS")
     reply = stub.IndicatorReport(request)
     print("La respuesta es: "+reply.message)
 

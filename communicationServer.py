@@ -298,11 +298,13 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         if(not comprobacion):
             mensaje = "El archivo ha sido modificado"
             descripcion = "El archivo " + archivo + " ha sido modificado"
-            #fecha
-            fecha = datetime.now()
-            #hora
-            hora = str(datetime.fromtimestamp(float(d.timestamp())))
-            guardarIndicador(descripcion, "MD5", ipHost, fecha, hora )
+            tsIndicator = time.time()
+            stamp = str(datetime.fromtimestamp(tsIndicator))
+            FyH = stamp.split()
+            fechaIndicator = FyH[0]
+            horaIndicator = FyH[1]
+
+            guardarIndicador(descripcion, "MD5", ipHost, fechaIndicator, horaIndicator)
             #Levantamos un indicador de compromiso, y posteriormente le pedimos reporte al host mediante una cola de reportes
             colaReportesMD5.append(ipHost)    
 
