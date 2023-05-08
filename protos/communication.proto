@@ -46,7 +46,7 @@ message ReportXIndicator{
 }
 
 message ComprobationMD5{
-  string IP = 1; //Direccion IP 
+  string ip = 1; //Direccion IP 
   string md5 = 2; // MD5 del programa
   string archive = 3; // Nombre del archivo
 }

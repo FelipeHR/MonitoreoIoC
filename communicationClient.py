@@ -117,25 +117,43 @@ def reporte(detector):
         replySave = stub.SaveIndicatorReport(save)
 
 
-def hashComprobation():
+def hashComprobation(archivo):
+    ruta = ""
+    if archivo == "client":
+        ruta = "communicationClient.py"
+    elif archivo == "loki":
+        ruta = "Loki-0.45.0/loki.py"
     
+    with open(ruta,"rb") as f:
+        text = f.read()
+        md5 = hashlib.md5(text).hexdigest()
+
+    return md5
 
 def run():
     global ipserver
+    global ip
     llave = input() #Se pide la llave para desencriptar la clave privada
     f = Fernet(llave) #Se crea el objeto de la llave
     with open("certificates/host-key-encrypted.pem","rb") as encrypted_file:
         encrypted = encrypted_file.read() #Se lee el archivo encriptado
     decrypted =  f.decrypt(encrypted) #Se desencripta el archivo
     credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
-   decrypted,open('certificates/host.pem','rb').read()) #Se crean las credenciales
+    decrypted,open('certificates/host.pem','rb').read()) #Se crean las credenciales
     global channel
     channel = grpc.secure_channel(ipserver,credentials)
     global stub
     stub = communication_pb2_grpc.CommunicationStub(channel)
     
-     
+    mensajeMD5 = communication_pb2.ComprobationMD5(ip = ip, md5 = hashComprobation("client"), archive = "client")
 
+    serverReply = stub.ServerComprobationMD5(mensajeMD5)
+    
+    if serverReply != "El archivo no ha sido modificado":
+        indicadores.append(serverReply)
+    
+    print(serverReply)
+    
     responses = stub.BidirectionalCommunication(get_client_stream_requests())
     for response in responses:
         print("Respuesta: " + response.message)
