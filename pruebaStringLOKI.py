@@ -39,8 +39,9 @@ for i in alert_reason[1:]:
     dicGeneral["REASON " + str(contadorReason)] = dicReason
     contadorReason += 1
 
+print(dicGeneral)
 import json
-
+print(type(json.dumps(dicGeneral)))
 dicLoki = {}
 dicLoki[fecha] = dicGeneral
 
