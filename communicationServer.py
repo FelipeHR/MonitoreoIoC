@@ -36,6 +36,12 @@ colaReportesMD5 = []
 global colaCerrarConexion
 colaCerrarConexion = []
 
+global dicIndicadoresAPI
+dicIndicadoresAPI = []
+
+global dicReportesAPI
+dicReportesAPI = []
+
 '''
 
 1.- cambiar mensaje de respuesta del servidor cuando el indicador es enviado por nagios(detector) 
@@ -219,9 +225,9 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         Fecha  = str(d.date())
         Hora   = str(d.time())
-             
-        id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
 
+        id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
+        encolarReporteIndicador(request, "reporte")
         print("\nSe recibio el reporte\n")
 
         #si es string
@@ -261,7 +267,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
             id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
             print("Se recibio el indicador: ")
-
+            encolarReporteIndicador(request, "indicador")
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = str(id_indicador)
 
@@ -312,13 +318,28 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         return serverReply
     
-    def StreamingServerIndicator(self, request_iterator, context):
-        #Crear cola (una cola por cada ip, es decir una cola de colas) de indicadores para cada ip de terceros 
-        return super().StreamingServerIndicator(request_iterator, context)
+    def StreamingServerIndicator(self, request, context):
+        global dicIndicadoresAPI
+        #Crear cola (una cola por cada ip, es decir una cola de colas) de indicadores para cada ip de terceros
+        ipHost = request.ip
+        dicIndicadoresAPI[ipHost] = []
+        while True:
+            while not dicIndicadoresAPI[ipHost]:
+                indicador = dicIndicadoresAPI[ipHost].pop() 
+                yield indicador
+            time.sleep(10)
+
     
-    def StreamingServerReport(self, request_iterator, context):
-        #Crear cola (una cola por cada ip, es decir una cola de colas) de reportes para cada ip de terceros 
-        return super().StreamingServerReport(request_iterator, context)
+    def StreamingServerReport(self, request, context):
+        global dicReportesAPI
+        #Crear cola (una cola por cada ip, es decir una cola de colas) de indicadores para cada ip de terceros
+        ipHost = request.ip
+        dicReportesAPI[ipHost] = []
+        while True:
+            while not dicReportesAPI[ipHost]:
+                reporte = dicReportesAPI[ipHost].pop() 
+                yield reporte
+            time.sleep(10)
     
     def IndicatorRequest(self, request, context):
         #Crear consulta a la base de datos y construir la informacion del indicador 
@@ -328,6 +349,16 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         #Crear consulta a la base de datos y construir la informacion del reporte 
         return super().SpecificIndicator(request, context)
     
+def encolarReporteIndicador(informacion, tipo):
+    global dicIndicadoresAPI
+    global dicReportesAPI
+    if tipo == "indicador":
+        for ipCliente in dicIndicadoresAPI:
+            dicIndicadoresAPI[ipCliente].append(informacion)
+    elif tipo == "reporte":
+        for ipCliente in dicReportesAPI:
+            dicReportesAPI[ipCliente].append(informacion)
+
 
 
 
