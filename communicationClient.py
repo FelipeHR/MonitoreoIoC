@@ -10,7 +10,7 @@ from os import remove
 
 
 global ipserver
-ipserver = '192.168.4.100:50051'
+ipserver = '192.168.4.99:50051'
 global ip
 ip = subprocess.getoutput("hostname -I").split(' ')[0]
 global mac
@@ -22,7 +22,7 @@ stub = ""
 global tiempoLog
 tiempoLog = -1
 global tiempoReporte
-tiempoReporte = 20
+tiempoReporte = 30
 global tiempoLoki
 tiempoLoki = 120
 global contadorTiempoLoki
@@ -50,12 +50,18 @@ def get_client_stream_requests():
 
 def formatIndicador(cadena):
     fecha = cadena.split('Z')[0]
-    info = cadena.split('Alert: ')[1]
+    if len(cadena.split('Alert')) > 1:
+        info = cadena.split('Alert: ')[1]
+        tipo = "ALERT"
+    else:
+        info = cadena.split('Warning: ')[1]
+        tipo = "WARNING"
     alert_reason = info.split('REASON_')
     infoseparada = alert_reason[0].split(": ")
 
     dicGeneral = formated(alert_reason[0])
     dicGeneral["TIMESTAMP"] = fecha
+    dicGeneral["TIPE"] = tipo
     contadorReason = 1
     for i in alert_reason[1:]:
         separados = i.split("MATCHES: ")
@@ -108,20 +114,25 @@ def comprobarIndicador():
         try:
             file = open("log.txt")
             line = file.readline()
-            lineFormat = formatIndicador(line)
+            
             while line!= "":
-                request = communication_pb2.IndicatorMessage(ip = ip, timestamp = str(time.time()), indicator = lineFormat, detector = "LOKI")
+                if line != None: 
+                    print(line)
+                else: 
+                    print("Es nulo")
+                request = communication_pb2.IndicatorMessage(ip = ip, timestamp = str(time.time()), indicator = formatIndicador(line), detector = "LOKI")
                 reply = stub.IndicatorReport(request)
+                print("Respuesta del servidor al mandar indicador: " + str(reply.message))
                 indicadores.append(reply.message)
                 line = file.readline()
-                lineFormat = formatIndicador(line)
-                
+            print("terminamos de mandar todos los indicadores")
             file.close()
             remove("log.txt")
+            tiempoLog = -1
             return ("Tengo un problema")
         except FileNotFoundError:
             return ("No pasa nada")
-        tiempoLog = -1
+        
 
 def reporte(detector):
     global ip
@@ -160,10 +171,10 @@ def reporte(detector):
     report = reply.message
     while bool(indicadores):
         indicador = indicadores.pop()
-        print(report)
+        print("indicador a guardar: " + str(indicador) + " Tipo: " + str(type(indicador)))
         save = communication_pb2.ReportXIndicator(idReport = report, idIndicator = indicador)
         replySave = stub.SaveIndicatorReport(save)
-
+    print("salimos")
 
 def hashComprobation(archivo):
     ruta = ""
@@ -192,13 +203,13 @@ def run():
     channel = grpc.secure_channel(ipserver,credentials)
     global stub
     stub = communication_pb2_grpc.CommunicationStub(channel)
-    
+
     mensajeMD5 = communication_pb2.ComprobationMD5(ip = ip, md5 = hashComprobation("client"), archive = "client")
 
     serverReply = stub.ServerComprobationMD5(mensajeMD5)
     
-    if serverReply != "El archivo no ha sido modificado":
-        indicadores.append(serverReply)
+    #if serverReply != "El archivo no ha sido modificado":
+     #   indicadores.append(serverReply)
     
     print(serverReply)
     
