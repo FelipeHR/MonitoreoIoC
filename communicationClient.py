@@ -226,7 +226,7 @@ def run():
         elif response.message == "NAGIOS solicita tu reporte":
             reporte("NAGIOS")
 
-        elif response.message == "Servidor solicita tu reporte":
+        elif response.message == "Server solicita tu reporte":
             reporte("MD5")
         
         elif response.message == "Cerrar conexion":
