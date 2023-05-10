@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import json
 import sys
+import hashlib
 
 import grpc
 import communication_pb2
@@ -22,7 +23,7 @@ tiempoReporte = None
 global reporteGlobalTiempo 
 reporteGlobalTiempo = 240
 global reporteGlobal
-reporteGlobal = time.time()/60 + (reporteGlobalTiempo - 5)
+reporteGlobal = time.time()/60  + (reporteGlobalTiempo - (reporteGlobalTiempo - 2))
 #A los 5 minutos de que empieza a correr el servidor, le pedira un reporte a todos los clientes conectados
 #la siguiente peticion sera despues de reporteGlobalTiempo minutos
 
@@ -166,6 +167,16 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
 
     return id_indicador
 
+# ---------------------------------------------------------
+
+def get_hash(conn, origen):
+   
+    cur = conn.cursor()
+    cur.execute("SELECT Hash FROM Hash WHERE Origen=?", (origen,))
+
+    rows = cur.fetchone()
+
+    return rows[0]
 
 
 
@@ -245,11 +256,10 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         entregarReporte = None
 
         for request in request_iterator:
-            mensaje, tiempoInicial = comprobar(request.message, entregarReporte, request.ip)
-            print("Solicitud de "+request.ip+": "+request.message + "; Tiempo de reporte: " + str(tiempoInicial))
+            mensaje, entregarReporte = comprobar(request.message, entregarReporte, request.ip)
+            print("Solicitud de "+request.ip+": "+request.message)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = mensaje
-            #serverReply.problem = request.problem
             yield serverReply
 
 
@@ -267,6 +277,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
             id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
             print("Se recibio el indicador: ")
+            print(request.indicator)
             encolarReporteIndicador(request, "indicador")
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = str(id_indicador)
@@ -293,6 +304,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         return serverReply
 
     def ServerComprobationMD5(self, request, context):
+
         global colaReportesMD5
         md5Host = request.md5
         ipHost = request.ip
@@ -301,7 +313,11 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         comprobacion = True
         #consulta a la bd si el md5 del archivo es igual al md5 que se envio
         mensaje = "El archivo no ha sido modificado"
+
+
         if(not comprobacion):
+
+
             mensaje = "El archivo ha sido modificado"
             descripcion = "El archivo " + archivo + " ha sido modificado"
             tsIndicator = time.time()
@@ -314,7 +330,8 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
             #Levantamos un indicador de compromiso, y posteriormente le pedimos reporte al host mediante una cola de reportes
             colaReportesMD5.append(ipHost)    
 
-        serverReply = communication_pb2.ServerMessage(mensaje)
+        serverReply = communication_pb2.ServerMessage(message = mensaje)
+
 
         return serverReply
     
@@ -368,12 +385,13 @@ def verificarReporteGlobal(reporte):
     global tiempoReporte
     global tiempoMaximoReporte
 
-    if reporteGlobal < time.time()/60 - reporteGlobalTiempo:
-        tiempoReporte = time.time()/60
-        reporteGlobal = time.time()/60 
+    if (time.time()/60) > reporteGlobal:
+        print("entramos a la asignacion de reporte global")
+        tiempoReporte = time.time()/60 + tiempoMaximoReporte
+        reporteGlobal = time.time()/60 + reporteGlobalTiempo
     
     if tiempoReporte != None:
-        if time.time()/60 - tiempoReporte > tiempoMaximoReporte:
+        if time.time()/60 > tiempoReporte:
             tiempoReporte = None
             return None
 
@@ -424,8 +442,8 @@ def  comprobar(mensaje, reporte, ip):
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10)) #10 solicitudes simultaneas como maximo (conjunto de subprocesos que ejecutan tareas de forma concurrente (varias al mismo tiempo))
     communication_pb2_grpc.add_CommunicationServicer_to_server(CommunicationServicer(), server)
-    credentials = grpc.ssl_server_credentials( [    (open('certificates/server100-key.pem', 'rb').read(), open('certificates/server100.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
-    server.add_secure_port("192.168.4.100:50051", credentials)
+    credentials = grpc.ssl_server_credentials( [    (open('certificates/server99-key.pem', 'rb').read(), open('certificates/server99.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
+    server.add_secure_port("192.168.4.99:50051", credentials)
     server.start()
     print("Server Started")
     server.wait_for_termination()
