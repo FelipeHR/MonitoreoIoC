@@ -23,7 +23,7 @@ tiempoReporte = None
 global reporteGlobalTiempo 
 reporteGlobalTiempo = 240
 global reporteGlobal
-reporteGlobal = time.time()/60  + (reporteGlobalTiempo - (reporteGlobalTiempo - 2))
+reporteGlobal = time.time()/60  + (reporteGlobalTiempo - (reporteGlobalTiempo - 10))
 #A los 5 minutos de que empieza a correr el servidor, le pedira un reporte a todos los clientes conectados
 #la siguiente peticion sera despues de reporteGlobalTiempo minutos
 
@@ -169,14 +169,24 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
 
 # ---------------------------------------------------------
 
-def get_hash(conn, origen):
-   
+def get_hash(origen, hasheo):
+    
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+
+    conn = create_connection(database)
+
     cur = conn.cursor()
     cur.execute("SELECT Hash FROM Hash WHERE Origen=?", (origen,))
 
     rows = cur.fetchone()
 
-    return rows[0]
+    print("MD5 en base:  " + rows[0] + "\n\n")
+
+    if hasheo == rows[0]:
+        return True
+    else:
+        return False
+
 
 
 
@@ -223,6 +233,9 @@ def comprobarTiempo(tiempo, tiempoMax, esIndicador):
 '''
 # --------------------------------------------
 
+
+
+# --------------------------------------------
 
 class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     
@@ -309,8 +322,13 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         md5Host = request.md5
         ipHost = request.ip
         archivo = request.archive
+
+        print("\n\narchivo:      " + archivo + "\n\nMD5 recivido: " + md5Host + "\n\n")
         
-        comprobacion = True
+        #comprobacion = True
+        comprobacion = get_hash(archivo, md5Host)
+
+
         #consulta a la bd si el md5 del archivo es igual al md5 que se envio
         mensaje = "El archivo no ha sido modificado"
 
