@@ -38,10 +38,10 @@ global colaCerrarConexion
 colaCerrarConexion = []
 
 global dicIndicadoresAPI
-dicIndicadoresAPI = []
+dicIndicadoresAPI = {}
 
 global dicReportesAPI
-dicReportesAPI = []
+dicReportesAPI = {}
 
 '''
 
@@ -378,11 +378,11 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     
     def IndicatorRequest(self, request, context):
         #Crear consulta a la base de datos y construir la informacion del indicador 
-        return super().SpecificReport(request, context)
+        return "Indicador"
     
     def ReportRequest(self, request, context):
         #Crear consulta a la base de datos y construir la informacion del reporte 
-        return super().SpecificIndicator(request, context)
+        return "Reporte"
     
 def encolarReporteIndicador(informacion, tipo):
     global dicIndicadoresAPI

@@ -14,14 +14,18 @@ credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read
 ipserver = '192.168.4.84:50051' 
 
 channel = grpc.secure_channel(ipserver,credentials)
+global stub
 stub = communication_pb2_grpc.CommunicationStub(channel)
-ip = "Direccion IP"
+global nombreSoftware
+nombreSoftware = "Prueba"
 
 
 
 
 def recibirReportes():
-    request = communication_pb2.ClientMessage(ip = ip, message = "Recibir reportes")
+    global nombreSoftware
+    global stub
+    request = communication_pb2.ClientMessage(name = nombreSoftware)
     responses = stub.StreamingServerReport(request)
     for response in responses:
         print("REPORTE RECIBIDO")
@@ -29,7 +33,9 @@ def recibirReportes():
         print()
 
 def recibirIndicadores():
-    request = communication_pb2.ClientMessage(ip = ip, message = "Recibir indicadores")
+    global nombreSoftware
+    global stub
+    request = communication_pb2.ClientMessage(name = nombreSoftware)
     responses = stub.StreamingServerIndicator(request)
     for response in responses:
         print("INDICADOR DE COMPROMISO DETECTADO")
@@ -39,6 +45,9 @@ def recibirIndicadores():
         print()
 
 def consultaEspecificaReportes():
+    global nombreSoftware
+    global stub
+
     ipConsulta = input("Ingrese la IP del host a consultar: ")
     fechaInicial = input("Ingrese la fecha inicial (YYYY-MM-DD): ")
     fechaFinal = input("Ingrese la fecha final (YYYY-MM-DD): ")
@@ -48,6 +57,9 @@ def consultaEspecificaReportes():
         print("REPORTE RECIBIDO") 
 
 def consultaEspecificaIndicadores():
+    global nombreSoftware
+    global stub
+    
     ipConsulta = input("Ingrese la IP del host a consultar: ")
     fechaInicial = input("Ingrese la fecha inicial (YYYY-MM-DD): ")
     fechaFinal = input("Ingrese la fecha final (YYYY-MM-DD): ")
