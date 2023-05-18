@@ -22,7 +22,7 @@ stub = ""
 global tiempoLog
 tiempoLog = -1
 global tiempoReporte
-tiempoReporte = 30
+tiempoReporte = 2
 global tiempoLoki
 tiempoLoki = 120
 global contadorTiempoLoki
@@ -65,12 +65,11 @@ def formatIndicador(cadena):
     contadorReason = 1
     for i in alert_reason[1:]:
         separados = i.split("MATCHES: ")
-    
-        
         dicReason = formated(separados[0])
-        listMatches = [] 
+        if len(separados) > 1:
 
-        dicReason["MATCHES"] = formated(separados[1].replace(";"," "))
+            dicReason["MATCHES"] = formated(separados[1].replace(";"," "))
+            
         dicGeneral["REASON " + str(contadorReason)] = dicReason
         contadorReason += 1
 
