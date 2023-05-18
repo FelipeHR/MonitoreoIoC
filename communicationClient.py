@@ -10,7 +10,7 @@ from os import remove
 
 
 global ipserver
-ipserver = '192.168.4.99:50051'
+ipserver = '192.168.4.100:50051'
 global ip
 ip = subprocess.getoutput("hostname -I").split(' ')[0]
 global mac

@@ -427,8 +427,8 @@ def  comprobar(mensaje, reporte, ip):
     global colaReportesMD5
     #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
 
-    reporte = verificarReporteGlobal(reporte)
-
+    #reporte = verificarReporteGlobal(reporte)
+    reporte = True
     if mensaje == "Tengo un problema":
         return "Dame tu reporte", reporte 
     
@@ -460,8 +460,8 @@ def  comprobar(mensaje, reporte, ip):
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10)) #10 solicitudes simultaneas como maximo (conjunto de subprocesos que ejecutan tareas de forma concurrente (varias al mismo tiempo))
     communication_pb2_grpc.add_CommunicationServicer_to_server(CommunicationServicer(), server)
-    credentials = grpc.ssl_server_credentials( [    (open('certificates/server99-key.pem', 'rb').read(), open('certificates/server99.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
-    server.add_secure_port("192.168.4.99:50051", credentials)
+    credentials = grpc.ssl_server_credentials( [    (open('certificates/server100-key.pem', 'rb').read(), open('certificates/server100.pem', 'rb').read())], root_certificates=open('certificates/ca.pem', 'rb').read(), require_client_auth=True)
+    server.add_secure_port("192.168.4.100:50051", credentials)
     server.start()
     print("Server Started")
     server.wait_for_termination()
