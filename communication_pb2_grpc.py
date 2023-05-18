@@ -42,12 +42,12 @@ class CommunicationStub(object):
                 )
         self.StreamingServerIndicator = channel.unary_stream(
                 '/greet.Communication/StreamingServerIndicator',
-                request_serializer=communication__pb2.ClientMessage.SerializeToString,
+                request_serializer=communication__pb2.SoftwareMessage.SerializeToString,
                 response_deserializer=communication__pb2.IndicatorMessage.FromString,
                 )
         self.StreamingServerReport = channel.unary_stream(
                 '/greet.Communication/StreamingServerReport',
-                request_serializer=communication__pb2.ClientMessage.SerializeToString,
+                request_serializer=communication__pb2.SoftwareMessage.SerializeToString,
                 response_deserializer=communication__pb2.ReportMessage.FromString,
                 )
         self.IndicatorRequest = channel.unary_stream(
@@ -160,12 +160,12 @@ def add_CommunicationServicer_to_server(servicer, server):
             ),
             'StreamingServerIndicator': grpc.unary_stream_rpc_method_handler(
                     servicer.StreamingServerIndicator,
-                    request_deserializer=communication__pb2.ClientMessage.FromString,
+                    request_deserializer=communication__pb2.SoftwareMessage.FromString,
                     response_serializer=communication__pb2.IndicatorMessage.SerializeToString,
             ),
             'StreamingServerReport': grpc.unary_stream_rpc_method_handler(
                     servicer.StreamingServerReport,
-                    request_deserializer=communication__pb2.ClientMessage.FromString,
+                    request_deserializer=communication__pb2.SoftwareMessage.FromString,
                     response_serializer=communication__pb2.ReportMessage.SerializeToString,
             ),
             'IndicatorRequest': grpc.unary_stream_rpc_method_handler(
@@ -286,7 +286,7 @@ class Communication(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/greet.Communication/StreamingServerIndicator',
-            communication__pb2.ClientMessage.SerializeToString,
+            communication__pb2.SoftwareMessage.SerializeToString,
             communication__pb2.IndicatorMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -303,7 +303,7 @@ class Communication(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/greet.Communication/StreamingServerReport',
-            communication__pb2.ClientMessage.SerializeToString,
+            communication__pb2.SoftwareMessage.SerializeToString,
             communication__pb2.ReportMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
