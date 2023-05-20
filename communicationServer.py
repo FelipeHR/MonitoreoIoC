@@ -192,14 +192,15 @@ def get_indicators(fi,ff, origen):
     conn = create_connection(database)
     print("entramos")
     cur = conn.cursor()
-    cur.execute("SELECT * FROM Reporte WHERE Origen=?", ("192.168.4.101",))
+    cur.execute("SELECT Descripcion, Fecha, Hora, Detector  FROM Indicador WHERE Origen = ? AND Fecha >= ? AND Fecha <= ?", (origen, fi, ff, ))
     rows = cur.fetchall()
+    indicators = []
     print(rows)
-    """    indicators = []
-    for fecha in rows:
-        if fecha[0] <=ff and fecha[0] >=fi:
-            indicators.append(fecha[0])"""
-
+    for indicador in rows:
+        print(indicador[1] + " " + indicador[2])
+        mensajeIndicador = communication_pb2.IndicatorMessage(indicator = indicador[0], ip = origen, timestamp = str(indicador[1]) + " " + str(indicador[2]), detector = indicador[3])
+        indicators.append(mensajeIndicador)
+    
     return None
 
 def get_reports(fi,ff, origen):
@@ -222,7 +223,7 @@ def get_reports(fi,ff, origen):
             print(type(mensajeReporte.json))
     
 
-    #cur.execute("SELECT Fecha , Id_reporte, Datos FROM Reporte WHERE Fecha >= ? AND Fecha <= ?", (fi,ff,))
+    
     """for fecha in rows:
                     print(fecha[0])
                     print(fecha[1])
