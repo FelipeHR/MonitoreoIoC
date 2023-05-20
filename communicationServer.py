@@ -23,7 +23,7 @@ tiempoReporte = None
 global reporteGlobalTiempo 
 reporteGlobalTiempo = 240
 global reporteGlobal
-reporteGlobal = time.time()/60  + (reporteGlobalTiempo - (reporteGlobalTiempo - 10))
+reporteGlobal = time.time()/60  + 5
 #A los 5 minutos de que empieza a correr el servidor, le pedira un reporte a todos los clientes conectados
 #la siguiente peticion sera despues de reporteGlobalTiempo minutos
 
@@ -154,7 +154,7 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
     conn = create_connection(database)
 
     with conn: 
-    
+        print(fecha)
         # Guarda Indicador
         datos_indicador = (descripcion, detector, origen, fecha, hora)
         id_indicador = create_indicador(conn, datos_indicador)
@@ -176,20 +176,61 @@ def get_hash(origen, hasheo):
     conn = create_connection(database)
 
     cur = conn.cursor()
-    cur.execute("SELECT Hash FROM Hash WHERE Origen=?", (origen,))
-
+    cur.execute("SELECT * FROM Hash WHERE Origen=?", (origen,))
     rows = cur.fetchone()
-
-    print("MD5 en base:  " + rows[0] + "\n\n")
-
-    if hasheo == rows[0]:
+    """if hasheo == rows[0]:
         return True
     else:
         return False
+"""
+    return True
 
+def get_indicators(fi,ff, origen):
+        
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
 
+    conn = create_connection(database)
+    print("entramos")
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Reporte WHERE Origen=?", ("192.168.4.101",))
+    rows = cur.fetchall()
+    print(rows)
+    """    indicators = []
+    for fecha in rows:
+        if fecha[0] <=ff and fecha[0] >=fi:
+            indicators.append(fecha[0])"""
 
+    return None
 
+def get_reports(fi,ff, origen):
+        
+    database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
+
+    conn = create_connection(database)
+
+    cur = conn.cursor()
+    cur.execute("SELECT Id_reporte FROM Host_Reporte WHERE IP = ?", (origen,))
+    rows = cur.fetchall()
+    reports = []
+    for ids in rows:
+        cur.execute("SELECT Datos FROM Reporte WHERE Id_reporte = ? AND Fecha >= ? AND Fecha <= ?", (ids[0],fi,ff,))
+        reporte = cur.fetchone()
+        if reporte != None:
+            mensajeReporte = communication_pb2.ReportMessage(ip = origen, json = reporte[0])
+            reports.append(mensajeReporte)
+            print(type(mensajeReporte.ip))
+            print(type(mensajeReporte.json))
+    
+
+    #cur.execute("SELECT Fecha , Id_reporte, Datos FROM Reporte WHERE Fecha >= ? AND Fecha <= ?", (fi,ff,))
+    """for fecha in rows:
+                    print(fecha[0])
+                    print(fecha[1])
+                    print(fecha[2][0])
+                    if fecha[0] <=ff and fecha[0] >=fi:
+                        reports.append(fecha[0])
+            """
+    return reports
 # ---------------------------------------------------------
 
 def asociarIDLoki(id_indicador, id_reporte):
@@ -323,9 +364,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         ipHost = request.ip
         archivo = request.archive
 
-        print("\n\narchivo:      " + archivo + "\n\nMD5 recivido: " + md5Host + "\n\n")
         
-        #comprobacion = True
         comprobacion = get_hash(archivo, md5Host)
 
 
@@ -356,11 +395,11 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     def StreamingServerIndicator(self, request, context):
         global dicIndicadoresAPI
         #Crear cola (una cola por cada ip, es decir una cola de colas) de indicadores para cada ip de terceros
-        ipHost = request.ip
-        dicIndicadoresAPI[ipHost] = []
+        nombrePrograma = request.name
+        dicIndicadoresAPI[nombrePrograma] = []
         while True:
-            while not dicIndicadoresAPI[ipHost]:
-                indicador = dicIndicadoresAPI[ipHost].pop() 
+            while (dicIndicadoresAPI[nombrePrograma]):
+                indicador = dicIndicadoresAPI[nombrePrograma].pop() 
                 yield indicador
             time.sleep(10)
 
@@ -368,31 +407,38 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     def StreamingServerReport(self, request, context):
         global dicReportesAPI
         #Crear cola (una cola por cada ip, es decir una cola de colas) de indicadores para cada ip de terceros
-        ipHost = request.ip
-        dicReportesAPI[ipHost] = []
+        nombrePrograma = request.name
+        dicReportesAPI[nombrePrograma] = []
         while True:
-            while not dicReportesAPI[ipHost]:
-                reporte = dicReportesAPI[ipHost].pop() 
+            while dicReportesAPI[nombrePrograma]:
+                reporte = dicReportesAPI[nombrePrograma].pop() 
                 yield reporte
             time.sleep(10)
     
     def IndicatorRequest(self, request, context):
         #Crear consulta a la base de datos y construir la informacion del indicador 
-        return "Indicador"
+        indicadores = get_indicators(request.start, request.end, request.ip)
+        while not (indicadores):
+            yield indicadores.pop
+
     
     def ReportRequest(self, request, context):
-        #Crear consulta a la base de datos y construir la informacion del reporte 
-        return "Reporte"
+        reportes = get_reports(request.start, request.end, request.ip)
+        while reportes:
+            yield reportes.pop()
+            time.sleep(1)
     
 def encolarReporteIndicador(informacion, tipo):
     global dicIndicadoresAPI
     global dicReportesAPI
     if tipo == "indicador":
-        for ipCliente in dicIndicadoresAPI:
-            dicIndicadoresAPI[ipCliente].append(informacion)
+        for programa in dicIndicadoresAPI:
+            #print("Se encolo un indicador en " + str(programa))
+            dicIndicadoresAPI[programa].append(informacion)
     elif tipo == "reporte":
-        for ipCliente in dicReportesAPI:
-            dicReportesAPI[ipCliente].append(informacion)
+        for programa in dicReportesAPI:
+            #print("Se encolo un reporte en " + str(programa))
+            dicReportesAPI[programa].append(informacion)
 
 
 
@@ -427,8 +473,8 @@ def  comprobar(mensaje, reporte, ip):
     global colaReportesMD5
     #tiempoMaximoReporte es el tiempo maximo para solicitarle reportes a las demas maquinas
 
-    #reporte = verificarReporteGlobal(reporte)
-    reporte = True
+    reporte = verificarReporteGlobal(reporte)
+    
     if mensaje == "Tengo un problema":
         return "Dame tu reporte", reporte 
     
