@@ -19,7 +19,35 @@ stub = communication_pb2_grpc.CommunicationStub(channel)
 global nombreSoftware
 nombreSoftware = "Prueba"
 
+def guardarReportes(reportes, marcador):
+    global nombreSoftware
 
+    globalDic = {}
+
+
+    with open('consulta reportes '+ nombreSoftware + " "+ str(marcador) +'.json', 'w') as outfile:
+        
+        for reporte in reportes:
+            info = json.loads(reporte.json)
+            info['ipHost'] = reporte.ip
+            globalDic[info["TimeStamp"]] = info
+        json.dump(globalDic, outfile)
+
+
+def guardarIndicadores(indicadores, marcador):
+    global nombreSoftware
+
+    globalDic = {}
+
+
+    with open('consulta indicadores '+ nombreSoftware + " "+ str(marcador) +'.json', 'w') as outfile:
+        
+        for indicador in indicadores:
+            info = json.loads(indicador.indicator)
+            info['ipHost'] = indicador.ip
+            info['detector'] = indicador.detector
+            globalDic[indicador.timestamp] = info
+        json.dump(globalDic, outfile)
 
 
 def recibirReportes():
@@ -44,29 +72,32 @@ def recibirIndicadores():
         print("   Detector: " + response.detector)
         print()
 
-def consultaEspecificaReportes():
+def consultaEspecificaReportes( ipConsulta, fechaInicial, fechaFinal):
     global nombreSoftware
     global stub
 
-    ipConsulta = input("Ingrese la IP del host a consultar: ")
-    fechaInicial = input("Ingrese la fecha inicial (YYYY-MM-DD): ")
-    fechaFinal = input("Ingrese la fecha final (YYYY-MM-DD): ")
     request = communication_pb2.SpecificRequest(ip = ipConsulta, start = fechaInicial, end = fechaFinal)
     responses = stub.ReportRequest(request)
+    reportesRecibidos = []
     for response in responses:
-        print(response) 
+        print("REPORTE RECIBIDO IP del host: " + response.ip)
+        reportesRecibidos.append(response)
+    
+    
+    return reportesRecibidos
 
-def consultaEspecificaIndicadores():
+def consultaEspecificaIndicadores(ipConsulta, fechaInicial, fechaFinal):
     global nombreSoftware
     global stub
 
-    ipConsulta = input("Ingrese la IP del host a consultar: ")
-    fechaInicial = input("Ingrese la fecha inicial (YYYY-MM-DD): ")
-    fechaFinal = input("Ingrese la fecha final (YYYY-MM-DD): ")
     request = communication_pb2.SpecificRequest(ip = ipConsulta, start = fechaInicial, end = fechaFinal)
-    responses = stub.SpecificReport(request)
+    responses = stub.IndicatorRequest(request)
+    indicadoresRecibidos = []
     for response in responses:
-        print("INDICADOR RECIBIDO") 
+        indicadoresRecibidos.append(response)
+
+    return indicadoresRecibidos
+    
 
 if __name__ == "__main__":
     print("1. Recibir reportes")
@@ -79,10 +110,22 @@ if __name__ == "__main__":
         recibirReportes()
     elif opcion == "2":
         recibirIndicadores()
-    elif opcion == "3":
-        consultaEspecificaReportes()
-    elif opcion == "4":
-        consultaEspecificaIndicadores()
+
+    elif opcion == "3" or opcion == "4" :
+
+        ipConsulta = input("Ingrese la IP del host a consultar: ")
+        fechaInicial = input("Ingrese la fecha inicial (YYYY-MM-DD): ")
+        fechaFinal = input("Ingrese la fecha final (YYYY-MM-DD): ")
+        marcador = time.time()
+
+        if opcion == "3":
+            reportes = consultaEspecificaReportes(ipConsulta, fechaInicial, fechaFinal)
+            guardarReportes(reportes, marcador)
+
+        else:
+            indicadores = consultaEspecificaIndicadores(ipConsulta, fechaInicial, fechaFinal)
+            guardarIndicadores(indicadores, marcador)
+        
     elif opcion == "5":
         sys.exit()
 
