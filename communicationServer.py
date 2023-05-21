@@ -201,7 +201,7 @@ def get_indicators(fi,ff, origen):
         mensajeIndicador = communication_pb2.IndicatorMessage(indicator = indicador[0], ip = origen, timestamp = str(indicador[1]) + " " + str(indicador[2]), detector = indicador[3])
         indicators.append(mensajeIndicador)
     
-    return None
+    return indicators
 
 def get_reports(fi,ff, origen):
         
@@ -377,14 +377,16 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 
             mensaje = "El archivo ha sido modificado"
-            descripcion = "El archivo " + archivo + " ha sido modificado"
+            descripcion = {}
+            descripcion["DESCRIPTION"] = "File modified"
+            descripcion["FILE"] = "communicationClient.py"
             tsIndicator = time.time()
             stamp = str(datetime.fromtimestamp(tsIndicator))
             FyH = stamp.split()
             fechaIndicator = FyH[0]
             horaIndicator = FyH[1]
 
-            guardarIndicador(descripcion, "MD5", ipHost, fechaIndicator, horaIndicator)
+            guardarIndicador(json.dumps(descripcion), "MD5", ipHost, fechaIndicator, horaIndicator)
             #Levantamos un indicador de compromiso, y posteriormente le pedimos reporte al host mediante una cola de reportes
             colaReportesMD5.append(ipHost)    
 
@@ -419,8 +421,9 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
     def IndicatorRequest(self, request, context):
         #Crear consulta a la base de datos y construir la informacion del indicador 
         indicadores = get_indicators(request.start, request.end, request.ip)
-        while not (indicadores):
-            yield indicadores.pop
+        while indicadores:
+            yield indicadores.pop()
+            time.sleep(1)
 
     
     def ReportRequest(self, request, context):
