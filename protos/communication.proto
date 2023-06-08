@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package greet;
 
+// The greeting service definition.
 service Communication {
 	
 	rpc SubmitReport (ReportMessage) returns (ServerMessage); // Envia un reporte al servidor 
@@ -16,6 +17,7 @@ service Communication {
   rpc ReportRequest (SpecificRequest) returns (stream ReportMessage); // Envia un reporte para obtener informacion
 } 
 
+// The request message containing the user's name.
 message ClientMessage{
   string ip = 1; // IP del host que envia el mensaje
   string message = 2; // Mensaje a enviar
