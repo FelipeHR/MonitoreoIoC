@@ -324,6 +324,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
 
         if request.detector == "NAGIOS":
+            print("\n\n Se recibio la solicitud de NAGIOS\n\n")
             colaReportesNagios.append(request.ip)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = "Se pediran los reportes"
