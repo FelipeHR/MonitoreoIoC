@@ -33,6 +33,16 @@ def guardarReportes(reportes, marcador):
             globalDic[info["TimeStamp"]] = info
         json.dump(globalDic, outfile)
 
+def guardarReporte(reporte, marcador):
+    global nombreSoftware
+    globalDic = {}
+
+    with open('reporte streaming '+ nombreSoftware + " "+ str(marcador) +'.json', 'w') as outfile:    
+       
+        info = json.loads(reporte.json)
+        info['ipHost'] = reporte.ip
+        globalDic[info["TimeStamp"]] = info
+        json.dump(globalDic, outfile)
 
 def guardarIndicadores(indicadores, marcador):
     global nombreSoftware
@@ -49,6 +59,19 @@ def guardarIndicadores(indicadores, marcador):
             globalDic[indicador.timestamp] = info
         json.dump(globalDic, outfile)
 
+def guardarIndicador(indicador, marcador):
+    global nombreSoftware
+    globalDic = {}
+
+    with open('indicador streaming '+ nombreSoftware + " "+ str(marcador) +'.json', 'w') as outfile:
+        
+        info = json.loads(indicador.indicator)
+        info['ipHost'] = indicador.ip
+        info['detector'] = indicador.detector
+        globalDic[indicador.timestamp] = info
+        json.dump(globalDic, outfile)
+
+
 
 def recibirReportes():
     global nombreSoftware
@@ -59,6 +82,7 @@ def recibirReportes():
         print("REPORTE RECIBIDO")
         print("   IP del host: " + response.ip)
         print()
+        guardarReporte(response, time.time())
 
 def recibirIndicadores():
     global nombreSoftware
@@ -71,6 +95,8 @@ def recibirIndicadores():
         print("   Timestamp: " + response.timestamp)
         print("   Detector: " + response.detector)
         print()
+        guardarIndicador(response, time.time())
+
 
 def consultaEspecificaReportes( ipConsulta, fechaInicial, fechaFinal):
     global nombreSoftware
