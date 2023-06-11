@@ -22,7 +22,7 @@ stub = ""
 global tiempoLog
 tiempoLog = -1
 global tiempoReporte
-tiempoReporte = 2
+tiempoReporte = 20
 global tiempoLoki
 tiempoLoki = 120
 global contadorTiempoLoki
@@ -115,10 +115,6 @@ def comprobarIndicador():
             line = file.readline()
             
             while line!= "":
-                if line != None: 
-                    print(line)
-                else: 
-                    print("Es nulo")
                 request = communication_pb2.IndicatorMessage(ip = ip, timestamp = str(time.time()), indicator = formatIndicador(line), detector = "LOKI")
                 reply = stub.IndicatorReport(request)
                 print("Respuesta del servidor al mandar indicador: " + str(reply.message))
@@ -150,7 +146,6 @@ def reporte(detector):
     info["Processes"] = subprocess.getoutput("ps auxf").split('\n')
     info["AuthLogs"] = subprocess.getoutput("cat /var/log/auth.log").split('\n')
     info["SysLogs"] = subprocess.getoutput("cat /var/log/syslog").split('\n') #Datos de actividad del sistema
-    #info["RootKits"] = subprocess.getoutput("chkrootkit -q").split('\n')
     info["sudoers"] = subprocess.getoutput("getent group sudo | cut -d: -f4").split('\n')
     suid = {}
     for i in subprocess.getoutput("find . -perm /6000").split("\n"): #Se guardan los archivos
@@ -170,10 +165,8 @@ def reporte(detector):
     report = reply.message
     while bool(indicadores):
         indicador = indicadores.pop()
-        print("indicador a guardar: " + str(indicador) + " Tipo: " + str(type(indicador)))
         save = communication_pb2.ReportXIndicator(idReport = report, idIndicator = indicador)
         replySave = stub.SaveIndicatorReport(save)
-    print("salimos")
 
 def hashComprobation(archivo):
     ruta = ""
@@ -191,7 +184,7 @@ def hashComprobation(archivo):
 def run():
     global ipserver
     global ip
-    llave = input() #Se pide la llave para desencriptar la clave privada
+    llave = input("Ingrese clave para desencriptar certificado: ") #Se pide la llave para desencriptar la clave privada
     f = Fernet(llave) #Se crea el objeto de la llave
     with open("certificates/host-key-encrypted.pem","rb") as encrypted_file:
         encrypted = encrypted_file.read() #Se lee el archivo encriptado

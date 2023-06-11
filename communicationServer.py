@@ -154,7 +154,6 @@ def guardarIndicador(descripcion, detector, origen, fecha, hora):
     conn = create_connection(database)
 
     with conn: 
-        print(fecha)
         # Guarda Indicador
         datos_indicador = (descripcion, detector, origen, fecha, hora)
         id_indicador = create_indicador(conn, datos_indicador)
@@ -178,11 +177,12 @@ def get_hash(origen, hasheo):
     cur = conn.cursor()
     cur.execute("SELECT * FROM Hash WHERE Origen=?", (origen,))
     rows = cur.fetchone()
+    
     """if hasheo == rows[0]:
-        return True
-    else:
-        return False
-"""
+                    return True
+                else:
+                    return False"""
+
     return True
 
 def get_indicators(fi,ff, origen):
@@ -190,14 +190,13 @@ def get_indicators(fi,ff, origen):
     database = "/usr/local/nagios/libexec/eventhandlers/Base.db"
 
     conn = create_connection(database)
-    print("entramos")
+
     cur = conn.cursor()
     cur.execute("SELECT Descripcion, Fecha, Hora, Detector  FROM Indicador WHERE Origen = ? AND Fecha >= ? AND Fecha <= ?", (origen, fi, ff, ))
     rows = cur.fetchall()
     indicators = []
-    print(rows)
     for indicador in rows:
-        print(indicador[1] + " " + indicador[2])
+
         mensajeIndicador = communication_pb2.IndicatorMessage(indicator = indicador[0], ip = origen, timestamp = str(indicador[1]) + " " + str(indicador[2]), detector = indicador[3])
         indicators.append(mensajeIndicador)
     
@@ -219,18 +218,8 @@ def get_reports(fi,ff, origen):
         if reporte != None:
             mensajeReporte = communication_pb2.ReportMessage(ip = origen, json = reporte[0])
             reports.append(mensajeReporte)
-            print(type(mensajeReporte.ip))
-            print(type(mensajeReporte.json))
-    
 
     
-    """for fecha in rows:
-                    print(fecha[0])
-                    print(fecha[1])
-                    print(fecha[2][0])
-                    if fecha[0] <=ff and fecha[0] >=fi:
-                        reports.append(fecha[0])
-            """
     return reports
 # ---------------------------------------------------------
 
@@ -284,9 +273,6 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
     def SubmitReport(self, request, context):
 
-        print("\nSubmitReport()\n")
-
-
         d = datetime.now()
 
         Fecha  = str(d.date())
@@ -294,7 +280,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
 
         id_reporte = guardarReporte(request.ip, Fecha, Hora, request.json)
         encolarReporteIndicador(request, "reporte")
-        print("\nSe recibio el reporte\n")
+        print("Se recibio el reporte de " + str(request.ip))
 
         #si es string
         dic = json.loads(request.json)
@@ -331,14 +317,14 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         if request.detector == "LOKI" or request.detector == "MD5":
 
             id_indicador = guardarIndicador(request.indicator, request.detector, request.ip, fechaIndicator, horaIndicator)
-            print("Se recibio el indicador: ")
-            print(request.indicator)
+            print("Se recibio el indicador de " + str(request.ip))
             encolarReporteIndicador(request, "indicador")
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = str(id_indicador)
 
 
         if request.detector == "NAGIOS":
+            print("\n\n Se recibio la solicitud de NAGIOS\n\n")
             colaReportesNagios.append(request.ip)
             serverReply = communication_pb2.ServerMessage()
             serverReply.message = "Se pediran los reportes"
@@ -365,7 +351,7 @@ class CommunicationServicer(communication_pb2_grpc.CommunicationServicer):
         ipHost = request.ip
         archivo = request.archive
 
-        
+        print("Se comprobara el hash del archivo " + str(archivo) + " en el host " + str(ipHost))
         comprobacion = get_hash(archivo, md5Host)
 
 
@@ -454,7 +440,6 @@ def verificarReporteGlobal(reporte):
     global tiempoMaximoReporte
 
     if (time.time()/60) > reporteGlobal:
-        print("entramos a la asignacion de reporte global")
         tiempoReporte = time.time()/60 + tiempoMaximoReporte
         reporteGlobal = time.time()/60 + reporteGlobalTiempo
     
