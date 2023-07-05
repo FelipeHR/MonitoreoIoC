@@ -192,6 +192,7 @@ def run():
     credentials = grpc.ssl_channel_credentials(open('certificates/ca.pem','rb').read(),
     decrypted,open('certificates/host.pem','rb').read()) #Se crean las credenciales
     global channel
+    #channel = grpc.unsecure_channel(ipserver)
     channel = grpc.secure_channel(ipserver,credentials)
     global stub
     stub = communication_pb2_grpc.CommunicationStub(channel)
